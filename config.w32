@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("php-sodium", "for php-sodium support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("php-sodium", "enable php-sodium support", "no");
+
+if (PHP_PHP-SODIUM != "no") {
+	EXTENSION("php-sodium", "php-sodium.c");
+}
+

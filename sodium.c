@@ -29,24 +29,46 @@ This file is part of php-sodium.
 
 static int le_sodium;
 
-PHP_FUNCTION(confirm_sodium_compiled)
+PHP_FUNCTION(sodium_crypto_box_keypair)
 {
-	char *arg = NULL;
-	int arg_len, len;
-	char *strg;
+	zval *pk;
+	zval *sk;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
-		return;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", &pk, &sk) == FAILURE) {
+
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed parsing parms");
+		RETURN_FALSE;
 	}
 
-	len = spprintf(&strg, 0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "sodium", arg);
-	RETURN_STRINGL(strg, len, 0);
+	zval_dtor(pk);
+	zval_dtor(sk);
+	unsigned char *pkout = safe_emalloc(crypto_box_PUBLICKEYBYTES + 1, sizeof(unsigned char), 1);
+	unsigned char *skout = safe_emalloc(crypto_box_SECRETKEYBYTES + 1, sizeof(unsigned char), 1);
+	int rc = crypto_box_keypair(pkout, skout);
+	
+	if(rc != 0) {
+
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "rc failed with %d", rc);
+		RETURN_FALSE;
+	}
+
+	*(pkout + crypto_box_PUBLICKEYBYTES) = 0x0;
+	*(skout + crypto_box_SECRETKEYBYTES) = 0x0;
+
+	php_printf("rc: %d %d\n", rc, __LINE__);
+
+	ZVAL_STRINGL(pk, pkout, crypto_box_PUBLICKEYBYTES, 0);
+	ZVAL_STRINGL(sk, skout, crypto_box_SECRETKEYBYTES, 0);
 }
 
-/* {{{ sodium_functions[] 
-*/
+ZEND_BEGIN_ARG_INFO_EX(ai_change_s, 0, 0, 2)
+	ZEND_ARG_INFO(1, public_key)
+	ZEND_ARG_INFO(1, secret_key)
+ZEND_END_ARG_INFO()
+
+/* {{{ sodium_functions[] */
 const zend_function_entry sodium_functions[] = {
-	PHP_FE(confirm_sodium_compiled, NULL)
+	PHP_FE(sodium_crypto_box_keypair, ai_change_s)
 	PHP_FE_END
 };
 /* }}} */
@@ -91,26 +113,6 @@ PHP_MSHUTDOWN_FUNCTION(sodium)
 /* }}} */
 
 /* Remove if there's nothing to do at request start */
-/* {{{ PHP_RINIT_FUNCTION
- */
- /*
-PHP_RINIT_FUNCTION(sodium)
-{
-	return SUCCESS;
-}
-*/
-/* }}} */
-
-/* Remove if there's nothing to do at request end */
-/* {{{ PHP_RSHUTDOWN_FUNCTION
- */
- /*
-PHP_RSHUTDOWN_FUNCTION(sodium)
-{
-	return SUCCESS;
-}
-*/
-/* }}} */
 
 /* {{{ PHP_MINFO_FUNCTION
  */

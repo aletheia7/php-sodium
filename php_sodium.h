@@ -27,7 +27,6 @@ This file is part of php-sodium.
 #define PHP_SODIUM_EXTNAME "sodium"
 
 extern zend_module_entry sodium_module_entry;
-#define phpext_sodium_ptr &sodium_module_entry
 
 #ifdef ZTS
 #include "TSRM.h"
@@ -35,8 +34,6 @@ extern zend_module_entry sodium_module_entry;
 
 PHP_MINIT_FUNCTION(sodium);
 PHP_MSHUTDOWN_FUNCTION(sodium);
-//PHP_RINIT_FUNCTION(sodium);
-//PHP_RSHUTDOWN_FUNCTION(sodium);
 PHP_MINFO_FUNCTION(sodium);
 
 #endif /* PHP_SODIUM_H */

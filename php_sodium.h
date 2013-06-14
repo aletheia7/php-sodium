@@ -25,6 +25,7 @@ This file is part of php-sodium.
 
 #define PHP_SODIUM_VERSION "1.0.0"
 #define PHP_SODIUM_EXTNAME "sodium"
+#define PHP_SODIUM_NS "sodium"
 
 extern zend_module_entry sodium_module_entry;
 

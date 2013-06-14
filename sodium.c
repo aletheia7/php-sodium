@@ -29,7 +29,22 @@ This file is part of php-sodium.
 
 static int le_sodium;
 
-PHP_FUNCTION(sodium_crypto_box_keypair)
+zend_class_entry *php_sodium_entry;
+static zend_object_handlers sodium_object_handlers;
+
+/* {{{ proto sodium sodium::__construct()
+	ctor
+*/
+PHP_METHOD(sodium, __construct)
+{
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+	
+		zend_throw_exception(NULL, "Error parsing parameters", 1 TSRMLS_CC);
+	}
+}
+/* }}} */
+
+PHP_METHOD(sodium, keypair)
 {
 	zval *pk;
 	zval *sk;
@@ -61,15 +76,20 @@ PHP_FUNCTION(sodium_crypto_box_keypair)
 	ZVAL_STRINGL(sk, skout, crypto_box_SECRETKEYBYTES, 0);
 }
 
-ZEND_BEGIN_ARG_INFO_EX(ai_change_s, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium__construct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_keypair, 0, 0, 2)
 	ZEND_ARG_INFO(1, public_key)
 	ZEND_ARG_INFO(1, secret_key)
 ZEND_END_ARG_INFO()
 
-/* {{{ sodium_functions[] */
-const zend_function_entry sodium_functions[] = {
-	PHP_FE(sodium_crypto_box_keypair, ai_change_s)
-	PHP_FE_END
+/* {{{ php_sodium_class_methods[] 
+*/
+static zend_function_entry php_sodium_class_methods[] = {
+	PHP_ME(sodium, __construct, ai_sodium__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(sodium, keypair, ai_sodium_keypair, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
 };
 /* }}} */
 
@@ -79,7 +99,7 @@ zend_module_entry sodium_module_entry = {
 
 	STANDARD_MODULE_HEADER,
 	"sodium",
-	sodium_functions,
+	NULL,
 	PHP_MINIT(sodium),
 	PHP_MSHUTDOWN(sodium),
 	NULL,
@@ -94,9 +114,11 @@ zend_module_entry sodium_module_entry = {
  */
 PHP_MINIT_FUNCTION(sodium)
 {
-	/* If you have INI entries, uncomment these lines 
-	REGISTER_INI_ENTRIES();
-	*/
+	zend_class_entry ce_sodium;
+	INIT_CLASS_ENTRY(ce_sodium, "sodium", php_sodium_class_methods);
+	memcpy(&sodium_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	php_sodium_entry = zend_register_internal_class(&ce_sodium TSRMLS_CC);
+
 	return SUCCESS;
 }
 /* }}} */
@@ -123,10 +145,6 @@ PHP_MINFO_FUNCTION(sodium)
 	php_info_print_table_header(2, "sodium extension version", PHP_SODIUM_VERSION);
 	php_info_print_table_header(2, "sodium library version", sodium_version_string());
 	php_info_print_table_end();
-
-	/* Remove comments if you have entries in php.ini
-	DISPLAY_INI_ENTRIES();
-	*/
 }
 /* }}} */
 

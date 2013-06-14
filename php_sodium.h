@@ -37,6 +37,18 @@ PHP_MINIT_FUNCTION(sodium);
 PHP_MSHUTDOWN_FUNCTION(sodium);
 PHP_MINFO_FUNCTION(sodium);
 
+/* PHP 5.4 */
+#if PHP_VERSION_ID < 50399
+# define object_properties_init(zo, class_type) { \
+			zval *tmp; \
+			zend_hash_copy((*zo).properties, \
+							&class_type->default_properties, \
+							(copy_ctor_func_t) zval_add_ref, \
+							(void *) &tmp, \
+							sizeof(zval *)); \
+		 }
+#endif
+
 #endif /* PHP_SODIUM_H */
 /*
 vim: fdm=marker

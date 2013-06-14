@@ -29,13 +29,115 @@ This file is part of php-sodium.
 
 static int le_crypto;
 
-zend_class_entry *php_crypto_entry;
-static zend_object_handlers crypto_object_handlers;
+zend_class_entry *php_sodium_crypto_entry;
+static zend_object_handlers php_sodium_crypto_object_handlers;
+
+zend_class_entry *php_sodium_nonce_entry;
+static zend_object_handlers php_sodium_nonce_object_handlers;
+
+typedef struct _php_sodium_nonce {
+	zend_object std;
+	unsigned char *last;
+	unsigned char *current;
+} php_sodium_nonce;
+
+typedef struct _php_sodium_nonce_data {
+	struct timeval	ts;
+	unsigned char rand[8];
+	long long counter; 
+} php_sodium_nonce_data;
+
+/* {{{ php_bin2hex */
+static char hexconvtab[] = "0123456789abcdef";
+
+static char *php_bin2hex(const unsigned char *old, const size_t oldlen, size_t *newlen)
+{
+	register unsigned char *result = NULL;
+	size_t i, j;
+
+	result = (unsigned char *) safe_emalloc(oldlen, 2 * sizeof(char), 1);
+	
+	for (i = j = 0; i < oldlen; i++) {
+		result[j++] = hexconvtab[old[i] >> 4];
+		result[j++] = hexconvtab[old[i] & 15];
+	}
+	result[j] = '\0';
+
+	if (newlen) 
+		*newlen = oldlen * 2 * sizeof(char);
+
+	return (char *)result;
+}
+/* }}} */
+
+#define PHP_SODIUM_NONCE (php_sodium_nonce *) zend_object_store_get_object(getThis() TSRMLS_CC);
+
+/* {{{ static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) { */
+static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) {
+
+	php_sodium_nonce *intern = (php_sodium_nonce *) object;
+
+	if(! intern) {
+		return;
+	}
+
+	if(intern->last) {
+		efree(intern->last);
+		intern->last = NULL;
+	}
+
+	if(intern->current) {
+		efree(intern->current);
+		intern->current = NULL;
+	}
+
+	zend_object_std_dtor(&intern->std TSRMLS_CC);
+	efree(intern);
+}
+/* }}} */
+
+/* {{{ zend_object_value php_sodium_nonce_ctor(zend_class_entry *class_type TSRMLS_DC) */
+static zend_object_value php_sodium_nonce_ctor(zend_class_entry *class_type TSRMLS_DC) {
+
+	zend_object_value zov;
+	php_sodium_nonce *intern;
+
+	intern = (php_sodium_nonce *) emalloc(sizeof(*intern));
+	memset(&intern->std, 0, sizeof(zend_object));
+	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
+	object_properties_init(&intern->std, class_type);
+	intern->last = NULL;
+	intern->current = NULL;
+
+	zov.handle = zend_objects_store_put(
+		  intern 
+		, NULL
+		, (zend_objects_free_object_storage_t) php_sodium_nonce_free_object_storage 
+		, NULL TSRMLS_CC
+	); 
+	zov.handlers = (zend_object_handlers *) &php_sodium_nonce_object_handlers;
+	return zov;
+}
+/* }}} */
+
+/* {{{ php_sodium_nonce_destroy(php_sodium_nonce *intern */
+static void php_sodium_nonce_destroy(php_sodium_nonce *internal) {
+
+}
+/* }}} */
+
 
 /* {{{ proto crypto crypto::__construct() 
-	ctor
+	ctor */
+PHP_METHOD(crypto, __construct)
+{
+}
+/* }}} */
+
+/* {{{ proto crypto crypto::__destruct() 
+	dtor
 */
-PHP_METHOD(crypto, __construct) { }
+PHP_METHOD(crypto, __destruct) { }
 /* }}} */
 
 /* {{{ proto void crypto::keypair(string &$public_key, string &$secret_key) 
@@ -70,7 +172,7 @@ PHP_METHOD(crypto, keypair)
 }
 /* }}} */
 
-/* {{{ proto string crytpo::box(string $plain_text, string $nonce, string $receiver_public_key, string $sender_secret_key)
+/* {{{ proto string crytpo::box(string $plain_text, string $nonce, string $receiver_public_key, string $sender_secret_key) 
 	Encrypts $plain_text with $nonce and keys
 */
 PHP_METHOD(crypto, box)
@@ -119,7 +221,7 @@ PHP_METHOD(crypto, box)
 }
 /* }}} */
 
-/* {{{ proto string crytpo::box(string $encrypted_text, string $nonce, string $send_public_key, string $receiver_secret_key)
+/* {{{ proto string crytpo::box(string $encrypted_text, string $nonce, string $send_public_key, string $receiver_secret_key) 
 	Decrypts $encrypted_text with $nonce and keys
 */
 PHP_METHOD(crypto, box_open)
@@ -173,9 +275,8 @@ PHP_METHOD(crypto, box_open)
 }
 /* }}} */
 
-/* {{{ proto string random_bytes(int $length)
-	Returns a length of random bytes
-*/
+/* {{{ proto string random_bytes(int $length) 
+	Returns a length of random bytes */
 PHP_METHOD(crypto, random_bytes)
 {
 	long length;
@@ -193,41 +294,116 @@ PHP_METHOD(crypto, random_bytes)
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(ai_crypto__construct, 0, 0, 0)
+/* {{{ proto nonce nonce::__construct() 
+	ctor */
+PHP_METHOD(nonce, __construct)
+{
+	php_sodium_nonce *intern = PHP_SODIUM_NONCE;
+	unsigned char b[8];
+	php_sodium_nonce_data *d;
+
+	intern->current = safe_emalloc(1, sizeof(php_sodium_nonce_data), 0);
+	memset(intern->current, 0, sizeof(php_sodium_nonce_data));
+	d = (php_sodium_nonce_data *) intern->current;
+	gettimeofday(&d->ts, NULL);
+	//randombytes(d->rand, sizeof(d->rand));
+	d->counter = 0xffffffff; 
+
+	size_t newlen;
+	unsigned char *hex = php_bin2hex(intern->current, sizeof(php_sodium_nonce_data), &newlen);
+	php_printf("current: %d %s %d size: %d\n", newlen, hex, __LINE__, sizeof(php_sodium_nonce_data));
+	efree(hex);
+}
+/* }}} */
+
+/* {{{ proto nonce::__destruct() 
+	dtor */
+PHP_METHOD(nonce, __destruct)
+{
+}
+/* }}} */
+
+/* {{{ proto nonce nonce::increment() 
+	Increment nonce by 1 */
+PHP_METHOD(nonce, increment)
+{
+	php_sodium_nonce *nonce = PHP_SODIUM_NONCE;
+}
+/* }}} */
+
+/* {{{ proto mixed nonce::set_nonce(string $new_nonce]) 
+	  $affirm_greater => if current_nonce < new_nonce, set last_nonce, current_nonce and return nonce object, or return false on current_nonce >= new_nonce
+	! $affirm_greater => set last_nonce = current_nonce, current = new_once, return nonce object
+*/
+PHP_METHOD(nonce, set_nonce)
+{
+
+	//if(memcmp() < 0)
+}
+/* }}} */
+
+/* {{{ ZEND_BEGIN_ARG_INFO */
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto__construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_crypto_keypair, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto__destruct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_keypair, 0, 0, 2)
 	ZEND_ARG_INFO(1, public_key)
 	ZEND_ARG_INFO(1, secret_key)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_crypto_box, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box, 0, 0, 4)
 	ZEND_ARG_INFO(0, plain_text)
 	ZEND_ARG_INFO(0, nonce)
 	ZEND_ARG_INFO(0, public_key)
 	ZEND_ARG_INFO(0, secret_key)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_crypto_box_open, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box_open, 0, 0, 4)
 	ZEND_ARG_INFO(0, encrypted_text)
 	ZEND_ARG_INFO(0, nonce)
 	ZEND_ARG_INFO(0, public_key)
 	ZEND_ARG_INFO(0, secret_key)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_crypto_random_bytes, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_random_bytes, 0, 0, 1)
 	ZEND_ARG_INFO(0, length)
 ZEND_END_ARG_INFO()
 
-/* {{{ php_crypto_class_methods[] 
-*/
-static zend_function_entry php_crypto_class_methods[] = {
-	PHP_ME(crypto, __construct, ai_crypto__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	PHP_ME(crypto, keypair, ai_crypto_keypair, ZEND_ACC_PUBLIC)
-	PHP_ME(crypto, box, ai_crypto_box, ZEND_ACC_PUBLIC)
-	PHP_ME(crypto, box_open, ai_crypto_box_open, ZEND_ACC_PUBLIC)
-	PHP_ME(crypto, random_bytes, ai_crypto_random_bytes, ZEND_ACC_PUBLIC)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_nonce__construct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_nonce__destruct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_nonce_increment, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_nonce_set_nonce, 0, 0, 1)
+	ZEND_ARG_INFO(0, nonce)
+ZEND_END_ARG_INFO()
+
+/* }}} */
+
+/* {{{ php_sodium_crypto_class_methods[] */
+static zend_function_entry php_sodium_crypto_class_methods[] = {
+	PHP_ME(crypto, __construct, ai_sodium_crypto__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(crypto, __destruct, ai_sodium_crypto__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
+	PHP_ME(crypto, keypair, ai_sodium_crypto_keypair, ZEND_ACC_PUBLIC)
+	PHP_ME(crypto, box, ai_sodium_crypto_box, ZEND_ACC_PUBLIC)
+	PHP_ME(crypto, box_open, ai_sodium_crypto_box_open, ZEND_ACC_PUBLIC)
+	PHP_ME(crypto, random_bytes, ai_sodium_crypto_random_bytes, ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
+};
+
+/* {{{ php_sodium_nonce_class_methods[] */
+static zend_function_entry php_sodium_nonce_class_methods[] = {
+	PHP_ME(nonce, __construct, ai_sodium_nonce__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(nonce, __destruct, ai_sodium_nonce__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
+	PHP_ME(nonce, increment, ai_sodium_nonce_increment, ZEND_ACC_PUBLIC)
+	PHP_ME(nonce, set_nonce, ai_sodium_nonce_set_nonce, ZEND_ACC_PUBLIC)
 };
 /* }}} */
 
@@ -252,10 +428,18 @@ zend_module_entry sodium_module_entry = {
  */
 PHP_MINIT_FUNCTION(sodium)
 {
-	zend_class_entry ce_crypto;
-	INIT_NS_CLASS_ENTRY(ce_crypto, PHP_SODIUM_NS, "crypto", php_crypto_class_methods);
-	memcpy(&crypto_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-	php_crypto_entry = zend_register_internal_class(&ce_crypto TSRMLS_CC);
+	zend_class_entry ce_sodium_crypto;
+	INIT_NS_CLASS_ENTRY(ce_sodium_crypto, PHP_SODIUM_NS, "crypto", php_sodium_crypto_class_methods);
+	memcpy(&php_sodium_crypto_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	php_sodium_crypto_entry = zend_register_internal_class(&ce_sodium_crypto TSRMLS_CC);
+
+	zend_class_entry ce_sodium_nonce;
+	INIT_NS_CLASS_ENTRY(ce_sodium_nonce, PHP_SODIUM_NS, "nonce", php_sodium_nonce_class_methods);
+	ce_sodium_nonce.create_object = php_sodium_nonce_ctor;
+	memcpy(&php_sodium_nonce_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	php_sodium_nonce_entry = zend_register_internal_class(&ce_sodium_nonce TSRMLS_CC);
+	/*zend_declare_property_null(php_sodium_nonce_entry, "last", strlen("last"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(php_sodium_nonce_entry, "current", strlen("current"), ZEND_ACC_PROTECTED TSRMLS_CC);*/
 
 	return SUCCESS;
 }

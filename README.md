@@ -1,6 +1,6 @@
 ### php-sodium
 
-* PHP extension using [libsodium](https://github.com/jedisct1/libsodium.git). libsodium uses the [NACL: Networking and Cryptography library](http://nacl.cr.yp.to/).
+PHP extension using [libsodium](https://github.com/jedisct1/libsodium.git). libsodium uses the [NACL: Networking and Cryptography library](http://nacl.cr.yp.to/).
 
 PHP 5.3 +
 
@@ -16,14 +16,15 @@ TODO
 
 #### Example
 
-* Alice is going to send an encrypted message to Bob using Bob's public key and Alice's secret key.
+Alice sends an encrypted message to Bob using Bob's public key and Alice's secret key.
 
 
 ```php
 <?php
 /*
  * php-sodium uses namespace sodium.
- * crypto() and nonce() methods throw \sodium\crypto_exception 
+ * crypto() and nonce() objects contain the methods
+ * methods will throw a crypto_exception on errors
  */
 try {
 
@@ -34,7 +35,8 @@ try {
 
 	// Create public key
 	$alice_public = new \sodium\public_key();
-	// Load binary key from alice_secret (pbin), false: expect binary, not key in hex
+	// Load binary key from alice_secret (pbin)
+	// false: expect a binary key; i.e. not a hex key 
 	$alice_public->load($alice_secret->pbin, false);
 
 	// Alice's friend Bob 

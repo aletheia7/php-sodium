@@ -212,14 +212,17 @@ static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) {
 	}
 
 	if (intern->last) {
+
 		efree(intern->last);
 	}
 
 	if (intern->current) {
+
 		efree(intern->current);
 	}
 
 	if (intern->data) {
+
 		efree(intern->data);
 	}
 
@@ -524,13 +527,16 @@ PHP_METHOD(nonce, next)
 	php_sodium_nonce *nonce = PHP_SODIUM_NONCE;
 
 	if (! nonce->current) {
+
 		nonce->current = safe_emalloc(crypto_box_NONCEBYTES, sizeof(unsigned char), 1);
 	}
 
 	if (nonce->data) {
+
 		nonce->data->counter++;
 	}
 	else {
+
 		nonce->data = safe_emalloc(1, sizeof(php_sodium_nonce_data), 1);
 		randombytes(nonce->data->rand, sizeof(nonce->data->rand));
 		memcpy(nonce->current + 8, nonce->data->rand, 8);
@@ -541,14 +547,13 @@ PHP_METHOD(nonce, next)
 
 	/* If counter wraparound occurs, get new time() */
 	if (nonce->data->counter == 0) { 
+
 		gettimeofday(&nonce->data->ts, NULL);
 		lltos(&nonce->data->ts.tv_sec, 4, nonce->current, 1);
 		lltos(&nonce->data->ts.tv_usec, 4, nonce->current + 4, 1);
 	}
 
-	unsigned char *hex = php_sodium_hex(nonce->current, crypto_box_NONCEBYTES);
-	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), hex, (crypto_box_NONCEBYTES * 2) TSRMLS_CC);
-	efree(hex);
+	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), nonce->current, crypto_box_NONCEBYTES TSRMLS_CC);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
 /* }}} */
@@ -565,12 +570,22 @@ PHP_METHOD(nonce, set_nonce)
 	unsigned char *hex;
 	int rc;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &new_nonce, &new_nonce_len, &affirm_greater) == FAILURE) {
-		RETURN_FALSE;
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &new_nonce, &new_nonce_len, &affirm_greater);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
 	}
 
-	if(new_nonce_len != crypto_box_NONCEBYTES) {
-		RETURN_FALSE;
+	if (new_nonce_len != crypto_box_NONCEBYTES) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. nonce length must be %d bytes. Actual length is %d bytes.", crypto_box_NONCEBYTES, new_nonce_len);
+		return;
 	}
 
 	php_sodium_nonce *nonce = PHP_SODIUM_NONCE;
@@ -582,28 +597,27 @@ PHP_METHOD(nonce, set_nonce)
 			/* Compare struct timeval */
 			rc = memcmp(nonce->current, new_nonce, 8); 
 
-			if(rc == -1) {
-				RETURN_FALSE;
+			if (rc == -1) {
+				
+				zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. First 8 bytes of nonce < current: %d", rc);
+				return;
 			}
-			else if(rc == 0) {
+			else if (rc == 0) {
 				/* Compare counter */
 				rc = memcmp(nonce->current + 16, new_nonce + 16, 8); 
 
-				if(rc < 1) {
-					RETURN_FALSE;
+				if (rc < 1) {
+
+					zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. new nonce less than current nonce: %d", rc);
+					return;
 				}
 			}
 		}
 	}
 
 	nonce->last = nonce->current;
-	hex = php_sodium_hex(nonce->last, crypto_box_NONCEBYTES);
-	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "last", strlen("last"), hex, (crypto_box_NONCEBYTES * 2) TSRMLS_CC);
-	efree(hex);
 	nonce->current = estrndup(new_nonce, new_nonce_len);
-	hex = php_sodium_hex(nonce->current, crypto_box_NONCEBYTES);
-	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), hex, (crypto_box_NONCEBYTES * 2) TSRMLS_CC);
-	efree(hex);
+	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), nonce->current, crypto_box_NONCEBYTES TSRMLS_CC);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
 /* }}} */
@@ -941,8 +955,7 @@ PHP_MINIT_FUNCTION(sodium)
 	ce_sodium_nonce.create_object = php_sodium_nonce_ctor;
 	memcpy(&php_sodium_nonce_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	php_sodium_nonce_entry = zend_register_internal_class(&ce_sodium_nonce TSRMLS_CC);
-	zend_declare_property_null(php_sodium_nonce_entry, "last", strlen("last"), ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_null(php_sodium_nonce_entry, "current", strlen("current"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(php_sodium_nonce_entry, "current", strlen("current"), ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	zend_class_entry ce_sodium_public_key;
 	INIT_NS_CLASS_ENTRY(ce_sodium_public_key, PHP_SODIUM_NS, "public_key", php_sodium_public_key_class_methods);

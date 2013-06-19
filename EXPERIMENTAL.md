@@ -11,6 +11,7 @@
 + crypto_box_afternm()
 + crypto_box_open_afternm()
 + remove public variables, use methods 
++ make tests
 + Windows port
 
 #### Unplanned 

@@ -17,8 +17,8 @@ TODO
 
 #### Example
 
-Alice sends an encrypted message to Bob using Bob's public key and Alice's secret key.
-
++ Alice sends an encrypted message to Bob. 
++ Alice and Bob create and exchange public keys.
 
 ```php
 <?php
@@ -34,7 +34,7 @@ try {
 	// Create a secret key
 	$alice_secret = $c->keypair();
 
-	// Create public key, Bob will need this key
+	// Create public key to give to Bob
 	$alice_public = new \sodium\public_key();
 	// Load binary key from alice_secret (pbin)
 	// false: expect a binary key; i.e. not a hex key 

@@ -1,4 +1,4 @@
 php-sodium
 ==========
 
-PHP extension using libsodium. libsodium uses NaCL library.
+PHP extension using libsodium. libsodium uses the NaCL library.

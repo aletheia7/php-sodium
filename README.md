@@ -6,6 +6,10 @@ PHP 5.3 +
 
 #### Build on Linux
 
++ Install php5
++ Install php5-dev
++ Install libsodium
+
 ```
 git clone git@github.com:alethia7/php-sodium.git
 phpize && ./configure && make && sudo make install

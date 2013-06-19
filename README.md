@@ -1,27 +1,30 @@
-## php-sodium
+### php-sodium
 
 PHP extension using libsodium. libsodium uses the NaCL library.
 
 PHP 5.3 +
 
-### Build on Linux
+#### Build on Linux
 
 ```
 phpize && ./configure && make && sudo make install
 ```
 
-### Build on Windows
+#### Build on Windows
 
 Have not tested.
 
-### Example
+#### Example
+
+* Alice is going to send an encrypted message to Bob using Bob's public key and Alice's secret key.
+
 
 ```php
 <?php
 /*
  * php-sodium uses namespace sodium.
  * crypto() and nonce() methods throw \sodium\crypto_exception 
-*/
+ */
 try {
 
 	$c = new \sodium\crypto();
@@ -59,6 +62,7 @@ try {
 
 	$bob_nonce = new \sodium\nonce();
 
+	// nonce::set_nonce() will throw a crypto_exception if the new nonce < the last nonce.
 	$message_decrypted = $c->box_open(
 
 		  $encrypted_text
@@ -67,7 +71,7 @@ try {
 		, $bob_secret
 	);
 
-	echo "Messages encrypted/decrypted\n";
+	echo "Message successfully encrypted/decrypted\n";
 }
 
 catch(\crypto_exception $e) {
@@ -80,4 +84,4 @@ catch(\crypto_exception $e) {
 	));
 }
 ?>
-``
+```

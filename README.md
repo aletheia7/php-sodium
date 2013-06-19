@@ -7,7 +7,6 @@ PHP 5.3 +
 #### Build on Linux
 
 ```
-#
 git clone git@github.com:alethia7/php-sodium.git
 phpize && ./configure && make && sudo make install
 ```
@@ -35,7 +34,7 @@ try {
 	// Create a secret key
 	$alice_secret = $c->keypair();
 
-	// Create public key
+	// Create public key, Bob will need this key
 	$alice_public = new \sodium\public_key();
 	// Load binary key from alice_secret (pbin)
 	// false: expect a binary key; i.e. not a hex key 
@@ -61,9 +60,11 @@ try {
 	// Use Bob's public key to send to Bob 
 	$encrypted_text = $c->box($message, $nonce->next(), $bob_public, $alice_secret);
 
-	// Bob receives the $encrypted_text and 24 bytes nonce->current from Alice via the network
+	// Bob receives Alice's public key, the $encrypted_text, and a 24 byte nonce 
+	// string ($nonce->current) from Alice 
 	$nonce_from_alice = $nonce->current;
 
+	// Bob creates a nonce object.
 	$bob_nonce = new \sodium\nonce();
 
 	// nonce::set_nonce() will throw a crypto_exception if the new nonce < the last nonce.

@@ -83,7 +83,7 @@ try {
 	echo "Message successfully encrypted/decrypted\n";
 }
 
-catch(\crypto_exception $e) {
+catch(\sodium\crypto_exception $e) {
 
 	syslog(LOG_ERR, sprintf("Error: (%s) %s\n%s\n"
 

@@ -1,9 +1,0 @@
-Completed:
-
-randombytes()
-crypto_box_keypair()
-crypto_box()
-crypto_box_open()
-
-TODO
- 

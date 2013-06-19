@@ -1,6 +1,6 @@
 ### php-sodium
 
-PHP extension using libsodium. libsodium uses the NaCL library.
+* PHP extension using [libsodium](https://github.com/jedisct1/libsodium.git). libsodium uses the [NACL: Networking and Cryptography library](http://nacl.cr.yp.to/).
 
 PHP 5.3 +
 
@@ -12,7 +12,7 @@ phpize && ./configure && make && sudo make install
 
 #### Build on Windows
 
-Have not tested.
+TODO
 
 #### Example
 

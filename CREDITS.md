@@ -1,4 +1,4 @@
-#### [NaCL](http://nacl.cr.yp.to/index.html)
+#### [NaCl: Networking and Cryptography library](http://nacl.cr.yp.to/index.html)
 
 > The core NaCl development team consists of Daniel J. Bernstein (University of Illinois at Chicago), Tanja Lange (Technische Universiteit Eindhoven), and Peter Schwabe (Academia Sinica).
 

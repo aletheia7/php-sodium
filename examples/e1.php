@@ -35,8 +35,8 @@ try {
 	// Use Bob's public key to send to Bob 
 	$encrypted_text = $c->box($message, $nonce->next(), $bob_public, $alice_secret);
 
-	// Bob receives the $encrypted_text and 24 bytes nonce->current from Alice via the network
-	$nonce_from_alice = $nonce->current;
+	// Bob receives the $encrypted_text and 24 bytes nonce->nbin from Alice via the network
+	$nonce_from_alice = $nonce->nbin;
 
 	$bob_nonce = new \sodium\nonce();
 

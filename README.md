@@ -65,8 +65,8 @@ try {
 	$encrypted_text = $c->box($message, $nonce->next(), $bob_public, $alice_secret);
 
 	// Bob receives Alice's public key, the $encrypted_text, and a 24 byte nonce 
-	// string ($nonce->current) from Alice 
-	$nonce_from_alice = $nonce->current;
+	// string ($nonce->nbin) from Alice 
+	$nonce_from_alice = $nonce->nbin;
 
 	// Bob creates a nonce object.
 	$bob_nonce = new \sodium\nonce();

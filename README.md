@@ -21,7 +21,7 @@ TODO
 
 #### Documentation
 
-See: [php-sodium API](docs/api.php)
+See: [php-sodium API](docs/api.md)
 
 #### Example
 

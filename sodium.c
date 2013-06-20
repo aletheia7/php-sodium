@@ -313,9 +313,6 @@ PHP_METHOD(crypto, keypair)
 		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_KEYPAIR_FAILED TSRMLS_CC, "crypto_box_keypair failed: %d", rc);
 		return;
 	}
-
-	zend_update_property_stringl(php_sodium_secret_key_entry, return_value, "pbin", strlen("pbin"), key->public, crypto_box_PUBLICKEYBYTES TSRMLS_CC);
-	zend_update_property_stringl(php_sodium_secret_key_entry, return_value, "sbin", strlen("sbin"), key->secret, crypto_box_SECRETKEYBYTES TSRMLS_CC);
 }
 /* }}} */
 
@@ -541,7 +538,6 @@ PHP_METHOD(nonce, next)
 		lltos(&nonce->data->ts.tv_usec, 4, nonce->current + 4, 1);
 	}
 
-	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), nonce->current, crypto_box_NONCEBYTES TSRMLS_CC);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
 /* }}} */
@@ -583,7 +579,7 @@ PHP_METHOD(nonce, set_nonce)
 		if (nonce->last) {
 
 			/* Compare struct timeval */
-			rc = memcmp(nonce->current, new_nonce, 16; 
+			rc = memcmp(nonce->current, new_nonce, 16);
 
 			if (rc == -1) {
 				
@@ -605,7 +601,6 @@ PHP_METHOD(nonce, set_nonce)
 
 	nonce->last = nonce->current;
 	nonce->current = estrndup(new_nonce, new_nonce_len);
-	zend_update_property_stringl(php_sodium_nonce_entry, getThis(), "current", strlen("current"), nonce->current, crypto_box_NONCEBYTES TSRMLS_CC);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
 /* }}} */
@@ -697,6 +692,73 @@ PHP_METHOD(secret_key, __construct) {}
 	dtor
 */
 PHP_METHOD(secret_key, __destruct) {}
+/* }}} */
+
+/* {{{ proto mixed secret_key::__get(string $name)
+	All properties are private and accessible via __get(). This make them readonly.
+*/
+PHP_METHOD(secret_key, __get)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY;
+
+	if (name_len == 4) {
+
+		if (memcmp("pbin", name, 4) == 0) {
+
+			if (key->public) {
+
+				ret = safe_emalloc(crypto_box_PUBLICKEYBYTES + 1, sizeof(unsigned char), 1);
+				memcpy(ret, key->public, crypto_box_PUBLICKEYBYTES);
+				*(ret + crypto_box_PUBLICKEYBYTES) = 0;
+				RETURN_STRINGL(ret, crypto_box_PUBLICKEYBYTES, 0);
+			}
+		}
+		else if (memcmp("phex", name, 4) == 0) {
+
+			if (key->public) {
+
+				ret = php_sodium_hex(key->public, crypto_box_PUBLICKEYBYTES); 
+				RETURN_STRINGL(ret, crypto_box_PUBLICKEYBYTES * 2, 0);
+			}
+		}
+		else if (memcmp("sbin", name, 4) == 0) {
+
+			if (key->secret) {
+
+				ret = safe_emalloc(crypto_box_SECRETKEYBYTES + 1, sizeof(unsigned char), 1);
+				memcpy(ret, key->secret, crypto_box_SECRETKEYBYTES);
+				*(ret + crypto_box_SECRETKEYBYTES) = 0;
+				RETURN_STRINGL(ret, crypto_box_SECRETKEYBYTES, 0);
+			}
+		}
+		else if (memcmp("shex", name, 4) == 0) {
+
+			if (key->secret) {
+
+				ret = php_sodium_hex(key->secret, crypto_box_SECRETKEYBYTES); 
+				RETURN_STRINGL(ret, crypto_box_SECRETKEYBYTES * 2, 0);
+			}
+		}
+	}
+
+	RETURN_NULL();
+}
 /* }}} */
 
 /* {{{ proto mixed secret_key::load(string $public_key, string $secret_key [, bool $from_hex = true]) 
@@ -798,8 +860,6 @@ PHP_METHOD(secret_key, load)
 			key->secret = estrndup(secret_key, secret_key_len);
 		}
 	}
-	zend_update_property_stringl(php_sodium_secret_key_entry, getThis(), "pbin", strlen("pbin"), key->public, crypto_box_PUBLICKEYBYTES TSRMLS_CC);
-	zend_update_property_stringl(php_sodium_secret_key_entry, getThis(), "sbin", strlen("sbin"), key->secret, crypto_box_SECRETKEYBYTES TSRMLS_CC);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
 /* }}} */
@@ -863,6 +923,10 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(ai_sodium_secret_key__destruct, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_secret_key__get, 0, 0, 1)
+	ZEND_ARG_INFO(0, name)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(ai_sodium_secret_key_load, 0, 0, 2)
 	ZEND_ARG_INFO(0, public_key)
 	ZEND_ARG_INFO(0, secret_key)
@@ -894,16 +958,17 @@ static zend_function_entry php_sodium_nonce_class_methods[] = {
 /* {{{ php_sodium_public_key_methods[] */
 static zend_function_entry php_sodium_public_key_class_methods[] = {
 	PHP_ME(public_key, __construct, ai_sodium_public_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	PHP_ME(public_key, load, ai_sodium_public_key_load, ZEND_ACC_PUBLIC)
 	PHP_ME(public_key, __destruct, ai_sodium_public_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
+	PHP_ME(public_key, load, ai_sodium_public_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */
 
 /* {{{ php_sodium_secret_key_methods[] */
 static zend_function_entry php_sodium_secret_key_class_methods[] = {
 	PHP_ME(secret_key, __construct, ai_sodium_secret_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	PHP_ME(secret_key, load, ai_sodium_secret_key_load, ZEND_ACC_PUBLIC)
 	PHP_ME(secret_key, __destruct, ai_sodium_secret_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
+	PHP_ME(secret_key, __get, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(secret_key, load, ai_sodium_secret_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */
 
@@ -950,15 +1015,12 @@ PHP_MINIT_FUNCTION(sodium)
 	ce_sodium_public_key.create_object = php_sodium_key_ctor;
 	memcpy(&php_sodium_public_key_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	php_sodium_public_key_entry = zend_register_internal_class(&ce_sodium_public_key TSRMLS_CC);
-	zend_declare_property_null(php_sodium_public_key_entry, "pbin", strlen("pbin"), ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	zend_class_entry ce_sodium_secret_key;
 	INIT_NS_CLASS_ENTRY(ce_sodium_secret_key, PHP_SODIUM_NS, "secret_key", php_sodium_secret_key_class_methods);
 	ce_sodium_secret_key.create_object = php_sodium_key_ctor;
 	memcpy(&php_sodium_secret_key_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	php_sodium_secret_key_entry = zend_register_internal_class(&ce_sodium_secret_key TSRMLS_CC);
-	zend_declare_property_null(php_sodium_secret_key_entry, "pbin", strlen("pbin"), ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(php_sodium_secret_key_entry, "sbin", strlen("sbin"), ZEND_ACC_PUBLIC TSRMLS_CC);
 
 	zend_class_entry ce_sodium_crypto_exception;
 	INIT_NS_CLASS_ENTRY(ce_sodium_crypto_exception, PHP_SODIUM_NS, "crypto_exception", NULL);
@@ -971,8 +1033,6 @@ PHP_MINIT_FUNCTION(sodium)
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "KEYPAIR_FAILED", strlen("KEYPAIR_FAILED"), PHP_SODIUM_E_KEYPAIR_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_FAILED", strlen("BOX_FAILED"), PHP_SODIUM_E_BOX_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_OPEN_FAILED", strlen("BOX_OPEN_FAILED"), PHP_SODIUM_E_BOX_OPEN_FAILED TSRMLS_CC);
-
-	php_printf("key is %d\n", crypto_box_PUBLICKEYBYTES);
 
 	return SUCCESS;
 }

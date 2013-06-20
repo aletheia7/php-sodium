@@ -183,25 +183,6 @@ void reverse_num(unsigned char *in, unsigned char *out, size_t size) {
 }
  }}} */
 
-#define PHP_SODIUM_NONCE (php_sodium_nonce *) zend_object_store_get_object(getThis() TSRMLS_CC);
-
-#define PHP_SODIUM_KEY (php_sodium_key *) zend_object_store_get_object(getThis() TSRMLS_CC);
-
-#define PHP_SODIUM_E_BAD_NONCE (1<<0L)
-#define PHP_SODIUM_E_LOAD_PUBLICKEY (1<<1L)
-#define PHP_SODIUM_E_LOAD_SECRETKEY (1<<2L)
-#define PHP_SODIUM_E_BAD_PUBLICKEY (1<<3L)
-#define PHP_SODIUM_E_BAD_SECRETKEY (1<<4L)
-#define PHP_SODIUM_E_KEYPAIR_FAILED (1<<5L)
-#define PHP_SODIUM_E_BOX_FAILED (1<<6L)
-#define PHP_SODIUM_E_BOX_OPEN_FAILED (1<<7L)
-
-#define PHP_SODIUM_ERROR_HANDLING_INIT() zend_error_handling error_handling;
-
-#define PHP_SODIUM_ERROR_HANDLING_THROW() zend_replace_error_handling(EH_THROW, php_sodium_crypto_exception_entry, &error_handling TSRMLS_CC);
-
-#define PHP_SODIUM_ERROR_HANDLING_RESTORE() zend_restore_error_handling(&error_handling TSRMLS_CC);
-
 /* {{{ static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) */
 static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) {
 
@@ -495,8 +476,15 @@ PHP_METHOD(crypto, random_bytes)
 	long length;
 	unsigned char *b;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &length) == FAILURE) {
-		RETURN_FALSE;
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &length);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+		return;
 	}
 
 	b = safe_emalloc(length + 1, sizeof(unsigned char), 1);
@@ -595,7 +583,7 @@ PHP_METHOD(nonce, set_nonce)
 		if (nonce->last) {
 
 			/* Compare struct timeval */
-			rc = memcmp(nonce->current, new_nonce, 8); 
+			rc = memcmp(nonce->current, new_nonce, 16; 
 
 			if (rc == -1) {
 				
@@ -983,6 +971,8 @@ PHP_MINIT_FUNCTION(sodium)
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "KEYPAIR_FAILED", strlen("KEYPAIR_FAILED"), PHP_SODIUM_E_KEYPAIR_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_FAILED", strlen("BOX_FAILED"), PHP_SODIUM_E_BOX_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_OPEN_FAILED", strlen("BOX_OPEN_FAILED"), PHP_SODIUM_E_BOX_OPEN_FAILED TSRMLS_CC);
+
+	php_printf("key is %d\n", crypto_box_PUBLICKEYBYTES);
 
 	return SUCCESS;
 }

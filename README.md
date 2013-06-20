@@ -19,6 +19,10 @@ phpize && ./configure && make && sudo make install
 
 TODO
 
+#### Documentation
+
+See [API](docs/api.php)
+
 #### Example
 
 + Alice sends an encrypted message to Bob. 

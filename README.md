@@ -12,7 +12,7 @@ PHP 5.3 +
 
 ```bash
 git clone git@github.com:alethia7/php-sodium.git
-phpize && ./configure && make && sudo make install
+phpize && ./configure && make && sudo make install ; make test
 
 ```
 + Enable sodium extenion in PHP. Add "extension = sodium.so" to php.ini

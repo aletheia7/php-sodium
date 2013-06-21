@@ -459,6 +459,65 @@ PHP_METHOD(crypto, box)
 }
 /* }}} */
 
+/* {{{ proto php_sodium_crypto_box_open_afternm(INTERNAL_FUNCTION_PARAMETERS) 
+*/
+static void php_sodium_crypto_box_open_afternm(INTERNAL_FUNCTION_PARAMETERS) {
+
+	unsigned char *encrypted_text;
+	int encrypted_text_len;
+	zval *zn, *zk;  
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zk, php_sodium_precomp_key_entry);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE();
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_nonce *nonce = (php_sodium_nonce *) zend_object_store_get_object(zn TSRMLS_CC);
+
+	if (! nonce->current) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "nonce is missing a current value. Call nonce::next() or nonce::set_nonce()");
+		return;
+	}
+
+	php_sodium_key *key = (php_sodium_key *) zend_object_store_get_object(zk TSRMLS_CC);
+
+	if (! key->precomp) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_LOAD_PRECOMPKEY TSRMLS_CC, "precomp_key is missing a key. Call precomp_key::load()");
+		return;
+	}
+
+	int c_len = encrypted_text_len - crypto_box_BOXZEROBYTES + crypto_box_ZEROBYTES; 
+	unsigned char *c = safe_emalloc(c_len, sizeof(unsigned char), 1);
+	memset(c, 0, crypto_box_BOXZEROBYTES); 
+	memcpy(c + crypto_box_BOXZEROBYTES, encrypted_text, encrypted_text_len);
+
+	unsigned char *m = safe_emalloc(c_len + 1, sizeof(unsigned char), 1);
+	rc = crypto_box_open_afternm(m, c, c_len, nonce->current, key->precomp);
+	efree(c);
+
+	if(rc == 0) {
+
+		*(m + c_len) = 0;
+		RETVAL_STRINGL(crypto_box_ZEROBYTES + m, encrypted_text_len - crypto_box_BOXZEROBYTES, 1);
+	}
+	else {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_AFTERNM_BOX_OPEN_FAILED TSRMLS_CC, "crypto_box_open_afternm failed: %d", rc);
+	}
+
+	efree(m);
+}
+/* }}} */
+
 /* {{{ proto string crytpo::box_open(string $encrypted_text, nonce $nonce, public_key $sender, secret_key $receiver) 
 	Decrypts $encrypted_text with $nonce and keys
 */
@@ -474,12 +533,13 @@ PHP_METHOD(crypto, box_open)
 	PHP_SODIUM_ERROR_HANDLING_INIT()
 	PHP_SODIUM_ERROR_HANDLING_THROW()
 
-	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	int rc = zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
 
 	PHP_SODIUM_ERROR_HANDLING_RESTORE()
 
 	if (rc == FAILURE) {
 
+		php_sodium_crypto_box_open_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 		return;
 	}
 
@@ -1151,7 +1211,7 @@ ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box, 0, 0, 3)
 	ZEND_ARG_INFO(0, sender)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box_open, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box_open, 0, 0, 3)
 	ZEND_ARG_INFO(0, encrypted_text)
 	ZEND_ARG_INFO(0, nonce)
 	ZEND_ARG_INFO(0, sender)

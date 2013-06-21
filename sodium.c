@@ -30,6 +30,8 @@ This file is part of php-sodium.
 
 static int le_crypto;
 
+static HashTable php_sodium_ce_handlers;
+
 zend_class_entry *php_sodium_crypto_entry;
 static zend_object_handlers php_sodium_crypto_object_handlers;
 
@@ -46,7 +48,6 @@ zend_class_entry *php_sodium_precomp_key_entry;
 static zend_object_handlers php_sodium_precomp_key_object_handlers;
 
 zend_class_entry *php_sodium_crypto_exception_entry;
-
 typedef struct _php_sodium_nonce_data {
 	struct timeval	ts;
 	unsigned char rand[8];
@@ -291,8 +292,7 @@ static zend_object_value php_sodium_key_ctor(zend_class_entry *class_type, zend_
 		, (zend_objects_free_object_storage_t) php_sodium_key_free_object_storage 
 		, NULL TSRMLS_CC
 	); 
-	zov.handlers = handlers;
-	//zov.handlers = (zend_object_handlers *) &php_sodium_public_key_object_handlers;
+	zov.handlers = handlers; 
 	return zov;
 }
 /* }}} */
@@ -300,7 +300,29 @@ static zend_object_value php_sodium_key_ctor(zend_class_entry *class_type, zend_
 /* {{{ zend_object_value php_sodium_public_key_ctor(zend_class_entry *class_type TSRMLS_DC) */
 static zend_object_value php_sodium_public_key_ctor(zend_class_entry *class_type TSRMLS_DC) {
 
-	return php_sodium_key_ctor(class_type, &php_sodium_public_key_object_handlers TSRMLS_CC);
+	//return php_sodium_key_ctor(class_type, &php_sodium_public_key_object_handlers TSRMLS_CC);
+
+	zend_object_value zov;
+	php_sodium_key *intern;
+
+	intern = (php_sodium_key *) emalloc(sizeof(*intern));
+	memset(&intern->std, 0, sizeof(zend_object));
+	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
+	object_properties_init(&intern->std, class_type);
+	intern->public = NULL;
+	intern->secret = NULL;
+	intern->precomp = NULL;
+
+	zov.handle = zend_objects_store_put(
+		  intern 
+		, NULL
+		, (zend_objects_free_object_storage_t) php_sodium_key_free_object_storage 
+		, NULL TSRMLS_CC
+	); 
+	zov.handlers = &php_sodium_public_key_object_handlers; 
+	//php_sodium_class_entry *me = (php_sodium_class_entry *) class_type;
+	//php_printf("Got my name in ctor %s %d\n", class_type->name,  __LINE__);
+	return zov;
 }
 /* }}} */
 
@@ -318,13 +340,27 @@ static zend_object_value php_sodium_precomp_key_ctor(zend_class_entry *class_typ
 }
 /* }}} */
 
-/* {{{ static zend_object_value php_sodium_key_clone(zval *object TSRMLS_DC) */
-static zend_object_value php_sodium_key_clone(zval *object TSRMLS_DC) {
+/* {{{ static zend_object_value php_sodium_public_key_clone(zval *object TSRMLS_DC) */
+static zend_object_value php_sodium_public_key_clone(zval *object TSRMLS_DC) {
 
-	//zend_object_value zov = php_sodium_key_ctor(php_sodium_key_entry);
 	php_printf("clone called %d\n", __LINE__);
+	//zend_object_value zov = php_sodium_public_key_ctor(&php_sodium_public_key_entry->class_entry TSRMLS_CC);
+	zend_object_value zov = php_sodium_public_key_ctor(php_sodium_public_key_entry TSRMLS_CC);
+
+	php_sodium_key *key = (php_sodium_key *) zend_object_store_get_object(object TSRMLS_CC);
+	php_sodium_key *me = (php_sodium_key *) zend_object_store_get_object_by_handle(zov.handle TSRMLS_CC); 
+
+	if (key->public) {
+
+		php_printf("copy public key %d\n", __LINE__);
+		me->public = safe_emalloc(crypto_box_PUBLICKEYBYTES, sizeof(unsigned char), 1);
+		memcpy(me->public, key->public, crypto_box_PUBLICKEYBYTES);
+	}
+
+	return zov;
 }
 /* }}} */
+
 /* {{{ proto crypto crypto::__construct() 
 	ctor */
 PHP_METHOD(crypto, __construct)
@@ -1571,6 +1607,9 @@ PHP_MINIT_FUNCTION(sodium)
 	php_sodium_little_endian = ( (p[0] == 1) ? 1 : 0 );
 	lltos = (php_sodium_little_endian == 1 ? lltos_little: lltos_big);
 
+	//zend_hash_init(php_sodium_ce_handlers, 0, NULL, NULL, NULL);
+
+
 	zend_class_entry ce_sodium_crypto;
 	INIT_NS_CLASS_ENTRY(ce_sodium_crypto, PHP_SODIUM_NS, "crypto", php_sodium_crypto_class_methods);
 	memcpy(&php_sodium_crypto_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -1583,12 +1622,22 @@ PHP_MINIT_FUNCTION(sodium)
 	php_sodium_nonce_entry = zend_register_internal_class(&ce_sodium_nonce TSRMLS_CC);
 	zend_declare_property_null(php_sodium_nonce_entry, "current", strlen("current"), ZEND_ACC_PUBLIC TSRMLS_CC);
 
+	zend_class_entry *tce;
 	zend_class_entry ce_sodium_public_key;
 	INIT_NS_CLASS_ENTRY(ce_sodium_public_key, PHP_SODIUM_NS, "public_key", php_sodium_public_key_class_methods);
 	ce_sodium_public_key.create_object = php_sodium_public_key_ctor;
-	//ce_sodium_public_key.clone_obj = php_sodium_key_clone;
 	memcpy(&php_sodium_public_key_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	php_sodium_public_key_object_handlers.clone_obj = php_sodium_public_key_clone;
+
 	php_sodium_public_key_entry = zend_register_internal_class(&ce_sodium_public_key TSRMLS_CC);
+/*
+	php_sodium_public_key_entry = safe_emalloc(1, sizeof(php_sodium_class_entry), 1);
+	memcpy(&php_sodium_public_key_entry->class_entry, tce, sizeof(zend_class_entry));
+	memcpy(php_sodium_public_key_entry->myname, "hi erik", 8);
+	//tce = &php_sodium_public_key_entry->class_entry;
+	php_sodium_public_key_entry = zend_register_internal_class(&ce_sodium_public_key TSRMLS_CC);
+	//php_printf("hey %p %p  %s %d\n", php_sodium_public_key_entry, tce, php_sodium_public_key_entry->myname, __LINE__);
+	*/
 
 	zend_class_entry ce_sodium_secret_key;
 	INIT_NS_CLASS_ENTRY(ce_sodium_secret_key, PHP_SODIUM_NS, "secret_key", php_sodium_secret_key_class_methods);

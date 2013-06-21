@@ -5,7 +5,7 @@
 // ARG_WITH("sodium", "for sodium support", "no");
 
 // Otherwise, use ARG_ENABLE
-// ARG_ENABLE("sodium", "enable sodium support", "no");
+ARG_ENABLE("sodium", "enable sodium support", "no");
 
 if (PHP_SODIUM != "no") {
 	EXTENSION("sodium", "sodium.c");

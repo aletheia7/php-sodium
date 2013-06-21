@@ -15,3 +15,6 @@
 *.exe
 *.out
 *.app
+
+# other
+php.log

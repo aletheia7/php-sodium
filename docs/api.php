@@ -10,6 +10,7 @@ class public_key {
 	function __construct();
 	function __destruct();
 	function __get($name);
+	function __isset($name);
 
 	/**
 	* Load a previously generated public_key string.
@@ -33,6 +34,7 @@ class secret_key {
 	function __construct();
 	function __destruct();
 	function __get($name);
+	function __isset($name);
 
 	/**
 	* Load a previously generated public_key & secret_key strings. Keys must have
@@ -56,6 +58,7 @@ class precomp_key {
 	function __construct();
 	function __destruct();
 	function __get($name);
+	function __isset($name);
 
 	/**
 	* Load a precomp_key. Using a precomp_key instead of a public_key/secret_key
@@ -139,6 +142,7 @@ class nonce {
 	function __construct();
 	function __destruct();
 	function __get($name);
+	function __isset($name);
 
 	/**
 	* Generates a new 24 byte nonce internally, or increments the current nonce.

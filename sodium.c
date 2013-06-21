@@ -636,7 +636,7 @@ PHP_METHOD(nonce, __destruct)
 }
 /* }}} */
 
-/* {{{ proto mixed nonce::__get(string $name)
+/* {{{ proto mixed nonce::__get(string $name) 
 	All properties are private and accessible via __get(). This make them readonly.
 */
 PHP_METHOD(nonce, __get)
@@ -676,6 +676,45 @@ PHP_METHOD(nonce, __get)
 	}
 
 	RETURN_NULL();
+}
+/* }}} */
+
+/* {{{ proto bool nonce::__isset(string $name) 
+	All properties are private and accessible via __isset(). This make them readonly.
+*/
+PHP_METHOD(nonce, __isset)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_nonce *nonce = PHP_SODIUM_NONCE
+
+	if (nonce->current && (name_len == 4)) {
+
+		if (memcmp("nbin", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+		else if (memcmp("nhex", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+	}
+
+	RETURN_FALSE;
 }
 /* }}} */
 
@@ -795,7 +834,7 @@ PHP_METHOD(public_key, __construct) {}
 PHP_METHOD(public_key, __destruct) {}
 /* }}} */
 
-/* {{{ proto mixed public_key::__get(string $name)
+/* {{{ proto mixed public_key::__get(string $name) 
 	All properties are private and accessible via __get(). This make them readonly.
 */
 PHP_METHOD(public_key, __get)
@@ -835,6 +874,45 @@ PHP_METHOD(public_key, __get)
 	}
 
 	RETURN_NULL();
+}
+/* }}} */
+
+/* {{{ proto mixed public_key::__isset(string $name)
+	All properties are private and accessible via __isset(). This make them readonly.
+*/
+PHP_METHOD(public_key, __isset)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY
+
+	if (key->public && (name_len == 4)) {
+
+		if (memcmp("pbin", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+		else if (memcmp("phex", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+	}
+
+	RETURN_FALSE;
 }
 /* }}} */
 
@@ -915,7 +993,7 @@ PHP_METHOD(secret_key, __construct) {}
 PHP_METHOD(secret_key, __destruct) {}
 /* }}} */
 
-/* {{{ proto mixed secret_key::__get(string $name)
+/* {{{ proto mixed secret_key::__get(string $name) 
 	All properties are private and accessible via __get(). This make them readonly.
 */
 PHP_METHOD(secret_key, __get)
@@ -979,6 +1057,65 @@ PHP_METHOD(secret_key, __get)
 	}
 
 	RETURN_NULL();
+}
+/* }}} */
+
+/* {{{ proto mixed secret_key::__isset(string $name) 
+	All properties are private and accessible via __isset(). This make them readonly.
+*/
+PHP_METHOD(secret_key, __isset)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY
+
+	if (name_len == 4) {
+
+		if (memcmp("pbin", name, 4) == 0) {
+
+			if (key->public) {
+
+				RETURN_TRUE;
+			}
+		}
+		else if (memcmp("phex", name, 4) == 0) {
+
+			if (key->public) {
+
+				RETURN_TRUE;
+			}
+		}
+		else if (memcmp("sbin", name, 4) == 0) {
+
+			if (key->secret) {
+
+				RETURN_TRUE;
+			}
+		}
+		else if (memcmp("shex", name, 4) == 0) {
+
+			if (key->secret) {
+
+				RETURN_TRUE;
+			}
+		}
+	}
+
+	RETURN_FALSE;
 }
 /* }}} */
 
@@ -1137,6 +1274,45 @@ PHP_METHOD(precomp_key, __get)
 	}
 
 	RETURN_NULL();
+}
+/* }}} */
+
+/* {{{ proto mixed precom_key::__isset(string $name)
+	All properties are private and accessible via __isset(). This make them readonly.
+*/
+PHP_METHOD(precomp_key, __isset)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY
+
+	if (key->precomp) {
+
+		if (memcmp("cbin", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+		else if (memcmp("chex", name, 4) == 0) {
+
+			RETURN_TRUE;
+		}
+	}
+
+	RETURN_FALSE;
 }
 /* }}} */
 
@@ -1304,6 +1480,7 @@ static zend_function_entry php_sodium_nonce_class_methods[] = {
 	PHP_ME(nonce, __construct, ai_sodium_nonce__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(nonce, __destruct, ai_sodium_nonce__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
 	PHP_ME(nonce, __get, ai_sodium_nonce__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(nonce, __isset, ai_sodium_nonce__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(nonce, next, ai_sodium_nonce_next, ZEND_ACC_PUBLIC)
 	PHP_ME(nonce, set_nonce, ai_sodium_nonce_set_nonce, ZEND_ACC_PUBLIC)
 };
@@ -1314,6 +1491,7 @@ static zend_function_entry php_sodium_public_key_class_methods[] = {
 	PHP_ME(public_key, __construct, ai_sodium_public_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(public_key, __destruct, ai_sodium_public_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
 	PHP_ME(public_key, __get, ai_sodium_public_key__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(public_key, __isset, ai_sodium_public_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(public_key, load, ai_sodium_public_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */
@@ -1323,6 +1501,7 @@ static zend_function_entry php_sodium_secret_key_class_methods[] = {
 	PHP_ME(secret_key, __construct, ai_sodium_secret_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(secret_key, __destruct, ai_sodium_secret_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
 	PHP_ME(secret_key, __get, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(secret_key, __isset, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(secret_key, load, ai_sodium_secret_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */
@@ -1332,6 +1511,7 @@ static zend_function_entry php_sodium_precomp_key_class_methods[] = {
 	PHP_ME(precomp_key, __construct, ai_sodium_precomp_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(precomp_key, __destruct, ai_sodium_precomp_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
 	PHP_ME(precomp_key, __get, ai_sodium_precomp_key__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(precomp_key, __isset, ai_sodium_precomp_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(precomp_key, load, ai_sodium_precomp_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */

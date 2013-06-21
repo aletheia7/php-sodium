@@ -42,6 +42,9 @@ static zend_object_handlers php_sodium_public_key_object_handlers;
 zend_class_entry *php_sodium_secret_key_entry;
 static zend_object_handlers php_sodium_secret_key_object_handlers;
 
+zend_class_entry *php_sodium_precomp_key_entry;
+static zend_object_handlers php_sodium_precomp_key_object_handlers;
+
 zend_class_entry *php_sodium_crypto_exception_entry;
 
 typedef struct _php_sodium_nonce_data {
@@ -61,6 +64,7 @@ typedef struct _php_sodium_key {
 	zend_object std;
 	unsigned char *public;
 	unsigned char *secret;
+	unsigned char *precomp;
 } php_sodium_key;
 
 static int php_sodium_little_endian;
@@ -243,15 +247,23 @@ static void php_sodium_key_free_object_storage(void *object TSRMLS_DC) {
 	php_sodium_key *intern = (php_sodium_key *) object;
 
 	if (! intern) {
+
 		return;
 	}
 
 	if (intern->public) {
+
 		efree(intern->public);
 	}
 
 	if (intern->secret) {
+
 		efree(intern->secret);
+	}
+
+	if (intern->precomp) {
+
+		efree(intern->precomp);
 	}
 
 	zend_object_std_dtor(&intern->std TSRMLS_CC);
@@ -271,6 +283,7 @@ static zend_object_value php_sodium_key_ctor(zend_class_entry *class_type TSRMLS
 	object_properties_init(&intern->std, class_type);
 	intern->public = NULL;
 	intern->secret = NULL;
+	intern->precomp = NULL;
 
 	zov.handle = zend_objects_store_put(
 		  intern 
@@ -311,8 +324,66 @@ PHP_METHOD(crypto, keypair)
 	if (rc != 0) {
 
 		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_KEYPAIR_FAILED TSRMLS_CC, "crypto_box_keypair failed: %d", rc);
+	}
+}
+/* }}} */
+
+/* {{{ proto php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAMETERS) 
+*/
+static void php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAMETERS) {
+
+	unsigned char *plain_text;
+	zval *zn, *zk;  
+	int plain_text_len;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zk, php_sodium_precomp_key_entry);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE();
+
+	if (rc == FAILURE) {
+
 		return;
 	}
+
+	php_sodium_nonce *nonce = (php_sodium_nonce *) zend_object_store_get_object(zn TSRMLS_CC);
+
+	if (! nonce->current) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "nonce is missing a current value. Call nonce::next() or nonce::set_nonce()");
+		return;
+	}
+
+	php_sodium_key *key = (php_sodium_key *) zend_object_store_get_object(zk TSRMLS_CC);
+
+	if (! key->precomp) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_LOAD_PRECOMPKEY TSRMLS_CC, "precomp_key is missing a key. Call precomp_key::load()");
+		return;
+	}
+
+	int m_len = crypto_box_ZEROBYTES + plain_text_len;
+	unsigned char *m = safe_emalloc(m_len, sizeof(unsigned char), 1);
+	memset(m, 0, crypto_box_ZEROBYTES); 
+	memcpy(m + crypto_box_ZEROBYTES, plain_text, plain_text_len);
+
+	unsigned char *c = safe_emalloc(m_len + 1, sizeof(unsigned char), 1);
+	rc = crypto_box_afternm(c, m, m_len, nonce->current, key->precomp);
+	efree(m);
+
+	if (rc == 0) {
+
+		*(c + m_len) = 0;
+		RETVAL_STRINGL(c + crypto_box_BOXZEROBYTES, m_len - crypto_box_BOXZEROBYTES, 1);
+	}
+	else {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_AFTERNM_BOX_FAILED TSRMLS_CC, "crypto_box_afternm failed: %d", rc);
+	}
+
+	efree(c);
 }
 /* }}} */
 
@@ -322,7 +393,7 @@ PHP_METHOD(crypto, keypair)
 PHP_METHOD(crypto, box)
 {
 	unsigned char *c, *m, *plain_text;
-	zval *zn, *zpk, *zsk;  
+	zval *zn, *zpk, *zk, *zsk;  
 	int plain_text_len;
 	php_sodium_nonce *nonce;
 	php_sodium_key *public_key;
@@ -331,12 +402,13 @@ PHP_METHOD(crypto, box)
 	PHP_SODIUM_ERROR_HANDLING_INIT()
 	PHP_SODIUM_ERROR_HANDLING_THROW()
 
-	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	int rc = zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
 
 	PHP_SODIUM_ERROR_HANDLING_RESTORE()
 
 	if (rc == FAILURE) {
-
+	
+		php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 		return;
 	}
 
@@ -373,7 +445,7 @@ PHP_METHOD(crypto, box)
 	rc = crypto_box(c, m, m_len, nonce->current, public_key->public, secret_key->secret);
 	efree(m);
 
-	if(rc == 0) {
+	if (rc == 0) {
 
 		*(c + m_len) = 0;
 		RETVAL_STRINGL(c + crypto_box_BOXZEROBYTES, m_len - crypto_box_BOXZEROBYTES, 1);
@@ -381,7 +453,6 @@ PHP_METHOD(crypto, box)
 	else {
 
 		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BOX_FAILED TSRMLS_CC, "crypto_box failed: %d", rc);
-		return;
 	}
 
 	efree(c);
@@ -459,7 +530,6 @@ PHP_METHOD(crypto, box_open)
 	else {
 
 		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BOX_OPEN_FAILED TSRMLS_CC, "crypto_box_open failed: %d", rc);
-		return;
 	}
 
 	efree(m);
@@ -955,6 +1025,115 @@ PHP_METHOD(secret_key, load)
 }
 /* }}} */
 
+/* {{{ proto precomp_key::__construct() 
+	ctor
+*/
+PHP_METHOD(precomp_key, __construct) {}
+/* }}} */
+
+/* {{{ proto precomp_key::__destruct() 
+	dtor
+*/
+PHP_METHOD(precomp_key, __destruct) {}
+/* }}} */
+
+/* {{{ proto mixed precom_key::__get(string $name)
+	All properties are private and accessible via __get(). This make them readonly.
+*/
+PHP_METHOD(precomp_key, __get)
+{
+	char *name;
+	int name_len;
+	unsigned char *ret;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY
+
+	if (key->precomp) {
+
+		if (memcmp("cbin", name, 4) == 0) {
+
+			ret = safe_emalloc(crypto_box_BEFORENMBYTES + 1, sizeof(unsigned char), 1);
+			memcpy(ret, key->precomp, crypto_box_BEFORENMBYTES);
+			*(ret + crypto_box_BEFORENMBYTES) = 0;
+			RETURN_STRINGL(ret, crypto_box_BEFORENMBYTES, 0);
+		}
+		else if (memcmp("chex", name, 4) == 0) {
+
+			ret = php_sodium_hex(key->precomp, crypto_box_BEFORENMBYTES); 
+			RETURN_STRINGL(ret, crypto_box_BEFORENMBYTES * 2, 0);
+		}
+	}
+
+	RETURN_NULL();
+}
+/* }}} */
+
+/* {{{ proto mixed secret_key::load(public_key $public_key, public_key $secret_key) 
+*/
+PHP_METHOD(precomp_key, load)
+{
+	zval *zpk;
+	zval *zsk;
+
+	PHP_SODIUM_ERROR_HANDLING_INIT()
+	PHP_SODIUM_ERROR_HANDLING_THROW()
+
+	int rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "OO", &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+
+	if (rc == FAILURE) {
+
+		return;
+	}
+
+	php_sodium_key *key = PHP_SODIUM_KEY
+
+	if (! key->precomp) {
+
+		key->precomp = safe_emalloc(crypto_box_BEFORENMBYTES, sizeof(unsigned char), 1);
+	}
+
+	php_sodium_key *public_key = (php_sodium_key *) zend_object_store_get_object(zpk TSRMLS_CC);
+
+	if (! public_key->public) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_LOAD_PUBLICKEY TSRMLS_CC, "public_key is missing a key. Call public_key::load()");
+		return;
+	}
+
+	php_sodium_key *secret_key = (php_sodium_key *) zend_object_store_get_object(zsk TSRMLS_CC);
+
+	if (! secret_key->secret) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_LOAD_SECRETKEY TSRMLS_CC, "secret_key is missing a key. Call secret_key::load()");
+		return;
+	}
+
+	rc = crypto_box_beforenm(key->precomp, public_key->public, secret_key->secret);
+
+	if (rc != 0) {
+
+		zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BEFORENM_FAILED TSRMLS_CC, "crypto_box_beforenm() failed: %d", rc);
+		return;
+	}
+
+	RETURN_ZVAL(getThis(), 1, 0);
+}
+/* }}} */
+
 /* {{{ ZEND_BEGIN_ARG_INFO */
 ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto__construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -965,7 +1144,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_keypair, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_crypto_box, 0, 0, 3)
 	ZEND_ARG_INFO(0, plain_text)
 	ZEND_ARG_INFO(0, nonce)
 	ZEND_ARG_INFO(0, receiver)
@@ -1031,6 +1210,21 @@ ZEND_BEGIN_ARG_INFO_EX(ai_sodium_secret_key_load, 0, 0, 2)
 	ZEND_ARG_INFO(0, secret_key)
 	ZEND_ARG_INFO(0, from_hex)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_precomp_key__construct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_precomp_key__destruct, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_precomp_key__get, 0, 0, 1)
+	ZEND_ARG_INFO(0, name)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(ai_sodium_precomp_key_load, 0, 0, 2)
+	ZEND_ARG_INFO(0, public_key)
+	ZEND_ARG_INFO(0, secret_key)
+ZEND_END_ARG_INFO()
 /* }}} */
 
 /* {{{ php_sodium_crypto_class_methods[] */
@@ -1070,6 +1264,15 @@ static zend_function_entry php_sodium_secret_key_class_methods[] = {
 	PHP_ME(secret_key, __destruct, ai_sodium_secret_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
 	PHP_ME(secret_key, __get, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(secret_key, load, ai_sodium_secret_key_load, ZEND_ACC_PUBLIC)
+};
+/* }}} */
+
+/* {{{ php_sodium_precomp_key_methods[] */
+static zend_function_entry php_sodium_precomp_key_class_methods[] = {
+	PHP_ME(precomp_key, __construct, ai_sodium_precomp_key__construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(precomp_key, __destruct, ai_sodium_precomp_key__destruct, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)	
+	PHP_ME(precomp_key, __get, ai_sodium_precomp_key__get, ZEND_ACC_PUBLIC)	
+	PHP_ME(precomp_key, load, ai_sodium_precomp_key_load, ZEND_ACC_PUBLIC)
 };
 /* }}} */
 
@@ -1123,6 +1326,12 @@ PHP_MINIT_FUNCTION(sodium)
 	memcpy(&php_sodium_secret_key_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	php_sodium_secret_key_entry = zend_register_internal_class(&ce_sodium_secret_key TSRMLS_CC);
 
+	zend_class_entry ce_sodium_precomp_key;
+	INIT_NS_CLASS_ENTRY(ce_sodium_precomp_key, PHP_SODIUM_NS, "precomp_key", php_sodium_precomp_key_class_methods);
+	ce_sodium_precomp_key.create_object = php_sodium_key_ctor;
+	memcpy(&php_sodium_precomp_key_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	php_sodium_precomp_key_entry = zend_register_internal_class(&ce_sodium_precomp_key TSRMLS_CC);
+
 	zend_class_entry ce_sodium_crypto_exception;
 	INIT_NS_CLASS_ENTRY(ce_sodium_crypto_exception, PHP_SODIUM_NS, "crypto_exception", NULL);
 	php_sodium_crypto_exception_entry = zend_register_internal_class_ex(&ce_sodium_crypto_exception, zend_exception_get_default(TSRMLS_C), NULL TSRMLS_CC);
@@ -1134,6 +1343,10 @@ PHP_MINIT_FUNCTION(sodium)
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "KEYPAIR_FAILED", strlen("KEYPAIR_FAILED"), PHP_SODIUM_E_KEYPAIR_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_FAILED", strlen("BOX_FAILED"), PHP_SODIUM_E_BOX_FAILED TSRMLS_CC);
 	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BOX_OPEN_FAILED", strlen("BOX_OPEN_FAILED"), PHP_SODIUM_E_BOX_OPEN_FAILED TSRMLS_CC);
+	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "BEFORENM_FAILED", strlen("BEFORENM_FAILED"), PHP_SODIUM_E_BEFORENM_FAILED TSRMLS_CC);
+	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "AFTERNM_BOX_FAILED", strlen("AFTERNM_BOX_FAILED"), PHP_SODIUM_E_AFTERNM_BOX_FAILED TSRMLS_CC);
+	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "AFTERNM_BOX_OPEN_FAILED", strlen("AFTERNM_BOX_OPEN_FAILED"), PHP_SODIUM_E_AFTERNM_BOX_OPEN_FAILED TSRMLS_CC);
+	zend_declare_class_constant_long(php_sodium_crypto_exception_entry, "LOAD_PRECOMPKEY", strlen("LOAD_PRECOMPKEY"), PHP_SODIUM_E_LOAD_PRECOMPKEY TSRMLS_CC);
 
 	return SUCCESS;
 }

@@ -10,10 +10,12 @@ PHP 5.3 +
 + Install php5-dev
 + Install libsodium
 
-```
+```bash
 git clone git@github.com:alethia7/php-sodium.git
 phpize && ./configure && make && sudo make install
+
 ```
++ Enable sodium extenion in PHP. Add "extension = sodium.so" to php.ini
 
 #### Build on Windows
 

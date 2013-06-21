@@ -566,9 +566,14 @@ PHP_METHOD(nonce, next)
 	else {
 
 		nonce->data = safe_emalloc(1, sizeof(php_sodium_nonce_data), 1);
+		gettimeofday(&nonce->data->ts, NULL);
+		lltos(&nonce->data->ts.tv_sec, 4, nonce->current, 1);
+		lltos(&nonce->data->ts.tv_usec, 4, nonce->current + 4, 1);
+		randombytes(nonce->data->rand, sizeof(nonce->data->rand));
+		nonce->data->counter = 0;
+		lltos(&nonce->data->counter, 6, nonce->data->rand, 0);
 		randombytes(nonce->data->rand, sizeof(nonce->data->rand));
 		memcpy(nonce->current + 8, nonce->data->rand, 8);
-		nonce->data->counter = 0;
 	}
 
 	lltos(&nonce->data->counter, 8, (nonce->current + 16), 1);

@@ -10,7 +10,8 @@ class public_key {
 
 	function __construct();
 	function __destruct();
-	function __get($k);
+	function __get($name);
+	function __isset($name);
 
 	/**
 	* Load a previously generated public_key string.
@@ -33,7 +34,8 @@ class secret_key {
 
 	function __construct();
 	function __destruct();
-	function __get();
+	function __get($name);
+	function __isset($name);
 
 	/**
 	* Load a previously generated public_key & secret_key strings. Keys must have
@@ -48,11 +50,39 @@ class secret_key {
 	function load(string $public_key, string $secret_key, bool $from_hex = true);
 }
 
+/**
+* @property-read string $cbin precomp key in binary form, 32 bytes
+* @property-read string $chex precomp key in hexadecimal form, 64 bytes high-nibble first
+*/
+class precomp_key {
+
+	function __construct();
+	function __destruct();
+	function __get($name);
+	function __isset($name);
+
+	/**
+	* Load a precomp_key. Using a precomp_key instead of a public_key/secret_key
+	* with crypto::box, or crypto::box_open gains speed.
+	*
+	* Use a receiver's public key for $public_key and a sender's secret key for $secret_key
+	* for crypto::box().
+	*
+	* Use a sender's public key for $public_key and a receiver's secret key for $secret_key
+	* for crypto::box_open().
+	*
+	* @param public_key $public_key
+	* @param secret_key $secret_key
+	* @throws crypto_exception::code = crytpo_exception::[ GENERAL | BEFORENM_FAILED | LOAD_PUBLICKEY | LOAD_SECRETKEY ]
+	* @return precomp_key
+	*/
+	function load(public_key $public_key, secret_key $secret_key);
+}
+
 class crypto {
 
 	function __construct();
 	function __destruct();
-	function __get();
 
 	/**
 	* Generates a secret_key
@@ -66,28 +96,32 @@ class crypto {
 	* secret key. The nonce must never be the same for all messages between
 	* a sender -> receiver and receiver -> sender pair. Nonces can be reused between different
 	* sender/receiver pairs. Use nonce::next() for the $nonce.
+	* Use either public_key $receiver secret_key $sender | precomp_key $receiver.
+	* crypto_box_beforenm() and crypto_box_afternm() functionality is implemented by using a precomp_key.
 	* @param string $plain_text text to be encrypted
 	* @param nonce $nonce
-	* @param public_key $receiver
-	* @param secret_key $sender
-	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY ]
+	* @param mixed $receiver { public_key | precomp_key }
+	* @param mixed $sender { secret_key | null }
+	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY | LOAD_PRECOMPKEY | AFTERNM_BOX_FAILED ]
 	* @return string binary data. Length is 16 bytes longer than $plain_text
 	*/
-	function box($plain_text, nonce $nonce, public_key $receiver, secret_key $sender);
+	function box($plain_text, nonce $nonce, $receiver, $sender = null);
 
 	/**
 	* Decrypts encrypted data using a nonce, a sender's public key, and a receiver's
 	* secret key. The nonce must never be the same for all messages between
 	* a sender -> receiver and receiver -> sender pair. Nonces can be reused between different
 	* sender/receiver pairs. Use nonce::set_next() for the $nonce.
+	* Use either public_key $sender secret_key $receiver | precomp_key $sender.
+	* crypto_box_beforenm() and crypto_box_open_afternm() functionality is implemented by using a precomp_key.
 	* @param string $encrypted_text text to be decrypted
 	* @param nonce $nonce
-	* @param public_key $sender
-	* @param secret_key $receiver
-	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY ]
+	* @param mixed $sender { public_key | precomp_key }
+	* @param mixed $receiver { secret_key | null }
+	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY | LOAD_PRECOMPKEY | AFTERNM_BOX_OPEN_FAILED ]
 	* @return string plain text. Length is 16 bytes less than $encrypted_text
 	*/
-	function box_open(string $encrypted_text, nonce $nonce, public_key $sender, secret_key $receiver);
+	function box_open(string $encrypted_text, nonce $nonce, $sender, $receiver = null);
 
 	/**
 	* Generates random bytes
@@ -107,7 +141,8 @@ class nonce {
 
 	function __construct();
 	function __destruct();
-	function __get();
+	function __get($name);
+	function __isset($name);
 
 	/**
 	* Generates a new 24 byte nonce internally, or increments the current nonce.
@@ -146,11 +181,15 @@ class crypto_exception extends \Exception {
 	const BAD_NONCE = 0;
 	const LOAD_PUBLICKEY = 0;
 	const LOAD_SECRETKEY = 0;
+	const LOAD_PRECOMPKEY = 0
 	const BAD_PUBLICKEY = 0;
 	const BAD_SECRETKEY = 0;
 	const KEYPAIR_FAILED = 0;
 	const BOX_FAILED = 0;
 	const BOX_OPEN_FAILED = 0;
+	const BEFORENM_FAILED = 0;
+	const AFTERNM_BOX_FAILED = 0;
+	const AFTERNM_BOX_OPEN_FAILED = 0;
 }
 ?>
 ```

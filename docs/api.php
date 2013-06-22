@@ -82,7 +82,6 @@ class crypto {
 
 	function __construct();
 	function __destruct();
-	function __get($name);
 
 	/**
 	* Generates a secret_key

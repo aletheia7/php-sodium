@@ -13,7 +13,7 @@ class public_key {
 	function __isset($name);
 
 	/**
-	* Clone copies stand properties and internal properties.
+	* Clone copies standard properties and internal properties.
 	* Clone does not copy dynamically added properties.
 	* @return public_key
 	*/
@@ -44,7 +44,7 @@ class secret_key {
 	function __isset($name);
 
 	/**
-	* Clone copies stand properties and internal properties.
+	* Clone copies standard properties and internal properties.
 	* Clone does not copy dynamically added properties.
 	* @return secret_key
 	*/
@@ -75,7 +75,7 @@ class precomp_key {
 	function __isset($name);
 
 	/**
-	* Clone copies stand properties and internal properties.
+	* Clone copies standard properties and internal properties.
 	* Clone does not copy dynamically added properties.
 	* @return precomp_key
 	*/
@@ -166,7 +166,7 @@ class nonce {
 	function __isset($name);
 
 	/**
-	* Clone copies stand properties and internal properties.
+	* Clone copies standard properties and internal properties.
 	* Clone does not copy dynamically added properties.
 	* @return nonce
 	*/

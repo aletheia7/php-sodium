@@ -2,7 +2,7 @@
 
 php-sodium License
 
-Copyright 2013 Erik Haller. All rights reserved.
+Copyright 2013 Erik Haller <Erik dot Haller at gmail dot com>. All rights reserved.
 
 This file is part of php-sodium.
 

@@ -27,6 +27,20 @@ This file is part of php-sodium.
 #include "php_sodium.h"
 #include "sodium.h"
 #include "Zend/zend_exceptions.h"
+#include "ext/standard/info.h"
+
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef PHP_WIN32
+#include "win32/time.h"
+#elif defined(NETWARE)
+#include <sys/timeval.h>
+#include <sys/time.h>
+#else
+#include <sys/time.h>
+#endif
 
 static int le_crypto;
 
@@ -364,7 +378,7 @@ static zend_object_value php_sodium_nonce_clone(zval *object TSRMLS_DC) {
 		new->data = safe_emalloc(1, sizeof(php_sodium_nonce_data), 1);
 		new->data->ts.tv_sec = old->data->ts.tv_sec;
 		new->data->ts.tv_usec = old->data->ts.tv_usec;
-		memcpy(new->data->rand, old->data->rand, sizeof(rand));
+		memcpy(new->data->rand, old->data->rand, sizeof(old->data->rand));
 		new->data->counter = old->data->counter;
 	}
 

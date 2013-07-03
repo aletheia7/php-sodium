@@ -1,13 +1,11 @@
 
 if test "$GCC" = "yes" ; then
 
-AC_MSG_NOTICE([
-Setting CFLAGS to use -Wall
-])
-	CFLAGS="$CFLAGS -pedantic"
-#	CFLAGS=-Wall
+	# -pedantic can also be used to assist with porting to Microsoft C98 only compilers
+	# Example: ./configure CFLAGS=-pedantic
+	CFLAGS="$CFLAGS -Wall -Wno-pointer-sign"
+	AC_MSG_NOTICE(Setting CFLAGS=$CFLAGS)
 fi
-
 
 PHP_ARG_WITH(sodium, for sodium support,
 [  --with-sodium             Include sodium support])

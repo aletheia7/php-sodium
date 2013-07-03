@@ -42,8 +42,6 @@ This file is part of php-sodium.
 #include <sys/time.h>
 #endif
 
-static int le_crypto;
-
 static HashTable php_sodium_ce_handlers;
 
 zend_class_entry *php_sodium_crypto_entry;
@@ -491,7 +489,7 @@ static void php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAMETERS) {
 PHP_METHOD(crypto, box)
 {
 	unsigned char *c, *m, *plain_text;
-	zval *zn, *zpk, *zk, *zsk;  
+	zval *zn, *zpk, *zsk;  
 	int plain_text_len;
 	php_sodium_nonce *nonce;
 	php_sodium_key *public_key;
@@ -796,7 +794,6 @@ PHP_METHOD(nonce, __isset)
 {
 	char *name;
 	int name_len;
-	unsigned char *ret;
 	int rc;
 	php_sodium_nonce *nonce;
 
@@ -880,7 +877,6 @@ PHP_METHOD(nonce, set_nonce)
 	unsigned char *new_nonce;
 	int new_nonce_len;
 	zend_bool affirm_greater = 1;
-	unsigned char *hex;
 	int rc;
 	php_sodium_nonce *nonce;
 
@@ -999,7 +995,6 @@ PHP_METHOD(public_key, __isset)
 {
 	char *name;
 	int name_len;
-	unsigned char *ret;
 	int rc;
 	php_sodium_key *key;
 
@@ -1188,7 +1183,6 @@ PHP_METHOD(secret_key, __isset)
 {
 	char *name;
 	int name_len;
-	unsigned char *ret;
 	int rc;
 	php_sodium_key *key;
 
@@ -1367,7 +1361,6 @@ PHP_METHOD(precomp_key, __get)
 	char *name;
 	int name_len;
 	unsigned char *ret;
-	int c;
 	php_sodium_key *key;
 	int rc;
 
@@ -1412,7 +1405,6 @@ PHP_METHOD(precomp_key, __isset)
 {
 	char *name;
 	int name_len;
-	unsigned char *ret;
 	int rc;
 	php_sodium_key *key;
 

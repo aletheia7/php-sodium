@@ -1,6 +1,30 @@
+// vim:ft=javascript
+/*
+	The CAPITALIZED statements below come from win32/build/confutils.js
+
+	Create the libsodium-4.lib and libsodium_a.lib by:	
+	lib /DEF:libsodium-4.def /MACHINE:X86 /NOLOGO
+	lib libsodium.dll.a /MACHINE:X86 /NOLOGO libsodium.dll.a /OUT:libsodium-4_a.lib
+
+	Execute at php src root:
+		buildconf
+		configure --disable-all --enable-cli --enable-sodium
+		nmake
+
+	Copy src/sodium/bin/libsodium-4.dll to the --with-prefix= (php.exe) directory
+	
+*/
+
 ARG_ENABLE("sodium", "enable sodium support", "no");
 
 if (PHP_SODIUM != "no") {
-	EXTENSION("sodium", "sodium.c");
+
+		CHECK_HEADER_ADD_INCLUDE("sodium.h", "CFLAGS_SODIUM", "ext/sodium/src/sodium/include", 1);
+		CHECK_LIB('libsodium-4.lib', 'sodium', "ext/sodium/src/sodium/bin") 
+		CHECK_HEADER_ADD_INCLUDE("sodium.h", "CFLAGS_SODIUM", "ext/sodium/src/sodium/include", 1);
+		CHECK_HEADER_ADD_INCLUDE("crypto_box.h", "CFLAGS_SODIUM", "ext/sodium/src/sodium/include/sodium", 1);
+		CHECK_HEADER_ADD_INCLUDE("crypto_scalarmult_curve25519.h", "CFLAGS_SODIUM", "ext/sodium/src/sodium/include/sodium");
+		CHECK_HEADER_ADD_INCLUDE("stdint.h", "CFLAGS_SODIUM", "ext/sodium/src/msinttypes-r26", 1); 
+		EXTENSION("sodium", "sodium.c", true);
 }
 

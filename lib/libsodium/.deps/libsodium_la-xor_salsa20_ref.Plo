@@ -1,0 +1,12 @@
+libsodium_la-xor_salsa20_ref.lo: \
+ crypto_stream/salsa20/ref/xor_salsa20_ref.c \
+ crypto_stream/salsa20/ref/api.h include/sodium/crypto_stream_salsa20.h \
+ include/sodium/export.h include/sodium/crypto_core_salsa20.h
+
+crypto_stream/salsa20/ref/api.h:
+
+include/sodium/crypto_stream_salsa20.h:
+
+include/sodium/export.h:
+
+include/sodium/crypto_core_salsa20.h:

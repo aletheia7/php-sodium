@@ -1,3 +1,14 @@
+
+if test "$GCC" = "yes" ; then
+
+AC_MSG_NOTICE([
+Setting CFLAGS to use -Wall
+])
+	CFLAGS="$CFLAGS -pedantic"
+#	CFLAGS=-Wall
+fi
+
+
 PHP_ARG_WITH(sodium, for sodium support,
 [  --with-sodium             Include sodium support])
 

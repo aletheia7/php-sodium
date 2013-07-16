@@ -6,20 +6,20 @@ PHP 5.3 +
 
 #### Build on Linux
 
-+ Install php5
-+ Install php5-dev
-+ Install libsodium
-
+1. Install php5
+2. Install php5-dev
+3. Install libsodium
+4. Install php-sodium
 ```bash
-git clone git@github.com:alethia7/php-sodium.git
+git clone https://github.com/alethia7/php-sodium.git
 phpize && ./configure && make && sudo make install ; make test
-
 ```
-+ Enable sodium extenion in PHP. Add "extension = sodium.so" to php.ini
+
+5. Enable sodium extenion in PHP. Add "extension = sodium.so" to php.ini
 
 #### Build on Windows
 
-TODO
+Status: Builds under windoze branch
 
 #### Documentation
 
@@ -29,7 +29,6 @@ See: [php-sodium API](docs/api.md)
 
 + Alice sends an encrypted message to Bob. 
 + Alice and Bob create and exchange public keys.
-
 ```php
 <?php
 /*
@@ -88,7 +87,6 @@ try {
 
 	echo "Message successfully encrypted/decrypted\n";
 }
-
 catch(\sodium\crypto_exception $e) {
 
 	syslog(LOG_ERR, sprintf("Error: (%s) %s\n%s\n"

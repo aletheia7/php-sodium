@@ -1,14 +1,13 @@
 ### php-sodium
 
-PHP extension using [libsodium](https://github.com/jedisct1/libsodium.git). libsodium uses the [NACL: Networking and Cryptography library](http://nacl.cr.yp.to/).
-
-PHP 5.3 +
++ PHP extension using [libsodium](https://github.com/jedisct1/libsodium.git). libsodium uses the [NACL: Networking and Cryptography library](http://nacl.cr.yp.to/).
++ PHP 5.3 +
 
 #### Build on Linux
 
 1. Install php5
 2. Install php5-dev
-3. Install libsodium
+3. Install [libsodium](https://github.com/jedisct1/libsodium.git)
 4. Install php-sodium
 ```bash
 git clone https://github.com/alethia7/php-sodium.git
@@ -27,8 +26,9 @@ See: [php-sodium API](docs/api.md)
 
 #### Example
 
-+ Alice sends an encrypted message to Bob. 
-+ Alice and Bob create and exchange public keys.
+1. Alice sends an encrypted message to Bob. 
+2. Alice and Bob create and exchange public keys.
+3. Bod decrypts Alice's message.
 ```php
 <?php
 /*

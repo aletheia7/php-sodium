@@ -49,7 +49,7 @@ if test "$PHP_SODIUM" != "no"; then
 	git describe --tags &>/dev/null
 
 	if test $? -eq 0 ; then
-  		AC_DEFINE_UNQUOTED([PHP_SODIUM_VERSION], `git describe --tags`, [git version])
+  		AC_DEFINE_UNQUOTED([PHP_SODIUM_VERSION], `git describe --tags --abbr=0`, [git version])
 	else
         AC_DEFINE([PHP_SODIUM_VERSION], [no tag], [git version])
 	fi

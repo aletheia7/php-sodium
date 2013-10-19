@@ -19,10 +19,6 @@ This file is part of php-sodium.
     along with php-sodium.  If not, see <http://www.gnu.org/licenses/>
 }}} */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "php.h"
 #include "php_sodium.h"
 #include "sodium.h"
@@ -1601,7 +1597,7 @@ zend_module_entry sodium_module_entry = {
 	NULL,
 	NULL,
 	PHP_MINFO(sodium),
-	PHP_SODIUM_VERSION,
+	VER(PHP_SODIUM_VERSION),
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
@@ -1689,7 +1685,7 @@ PHP_MINFO_FUNCTION(sodium)
 {
 	php_info_print_table_start();
 	php_info_print_table_header(2, "sodium support", "enabled");
-	php_info_print_table_header(2, "sodium extension version", PHP_SODIUM_VERSION);
+	php_info_print_table_header(2, "sodium extension version", VER(PHP_SODIUM_VERSION));
 	php_info_print_table_header(2, "sodium library version", sodium_version_string());
 	php_info_print_table_header(2, "randombytes implementation name", randombytes_implementation_name());
 	php_info_print_table_header(2, "endian", (php_sodium_little_endian == 1 ? "little endian" : "big endian"));

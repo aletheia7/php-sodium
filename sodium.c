@@ -1543,6 +1543,7 @@ static zend_function_entry php_sodium_nonce_class_methods[] = {
 	PHP_ME(nonce, __isset, ai_sodium_nonce__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(nonce, next, ai_sodium_nonce_next, ZEND_ACC_PUBLIC)
 	PHP_ME(nonce, set_nonce, ai_sodium_nonce_set_nonce, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
 };
 /* }}} */
 
@@ -1553,6 +1554,7 @@ static zend_function_entry php_sodium_public_key_class_methods[] = {
 	PHP_ME(public_key, __get, ai_sodium_public_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(public_key, __isset, ai_sodium_public_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(public_key, load, ai_sodium_public_key_load, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
 };
 /* }}} */
 
@@ -1563,6 +1565,7 @@ static zend_function_entry php_sodium_secret_key_class_methods[] = {
 	PHP_ME(secret_key, __get, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(secret_key, __isset, ai_sodium_secret_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(secret_key, load, ai_sodium_secret_key_load, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
 };
 /* }}} */
 
@@ -1573,6 +1576,15 @@ static zend_function_entry php_sodium_precomp_key_class_methods[] = {
 	PHP_ME(precomp_key, __get, ai_sodium_precomp_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(precomp_key, __isset, ai_sodium_precomp_key__get, ZEND_ACC_PUBLIC)	
 	PHP_ME(precomp_key, load, ai_sodium_precomp_key_load, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
+};
+/* }}} */
+
+/* {{{ sodium_functions
+*/
+zend_function_entry sodium_functions[] = {
+
+	{NULL, NULL, NULL}
 };
 /* }}} */
 
@@ -1582,7 +1594,7 @@ zend_module_entry sodium_module_entry = {
 
 	STANDARD_MODULE_HEADER,
 	"sodium",
-	NULL,
+	sodium_functions,
 	PHP_MINIT(sodium),
 	PHP_MSHUTDOWN(sodium),
 	NULL,

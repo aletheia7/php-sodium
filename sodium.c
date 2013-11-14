@@ -1024,7 +1024,6 @@ PHP_METHOD(public_key, load)
 	int public_key_len;
 	zend_bool from_hex = 1;
 	unsigned char *public_key_bin;
-	int public_key_bin_len;
 	int rc;
 	php_sodium_key *key;
 
@@ -1052,13 +1051,13 @@ PHP_METHOD(public_key, load)
 
 		if (key->public) {
 
-			public_key_bin = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, &public_key_bin_len);
+			public_key_bin = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, NULL);
 			memcpy(key->public, public_key_bin, crypto_box_PUBLICKEYBYTES);
 			efree(public_key_bin);
 		}
 		else {
 
-			key->public = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, &public_key_bin_len);
+			key->public = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, NULL);
 		}
 	}
 	else {
@@ -1235,9 +1234,7 @@ PHP_METHOD(secret_key, load)
 	zend_bool from_hex = 1;
 
 	unsigned char *public_key_bin;
-	int public_key_bin_len;
 	unsigned char *secret_key_bin;
-	int secret_key_bin_len;
 	int rc;
 	php_sodium_key *key;
 
@@ -1269,7 +1266,7 @@ PHP_METHOD(secret_key, load)
 			return;
 		}
 	
-		public_key_bin = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, &public_key_bin_len); 
+		public_key_bin = php_hex2bin(public_key, crypto_box_PUBLICKEYBYTES * 2, NULL);
 
 		if (key->public) {
 		
@@ -1281,7 +1278,7 @@ PHP_METHOD(secret_key, load)
 			key->public = public_key_bin; 
 		}
 
-		secret_key_bin = php_hex2bin(secret_key, crypto_box_SECRETKEYBYTES * 2, &secret_key_bin_len); 
+		secret_key_bin = php_hex2bin(secret_key, crypto_box_SECRETKEYBYTES * 2, NULL);
 
 		if (key->secret) {
 

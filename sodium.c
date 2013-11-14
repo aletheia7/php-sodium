@@ -142,7 +142,7 @@ static char *php_sodium_hex(const unsigned char *old, const size_t oldlen) {
 }
 /* }}} */
 
-/* {{{ php_hex2bin(const unsignec char *old, const size_t oldlen, size_t *newlen) 
+/* {{{ php_hex2bin(const unsigned char *old, const size_t oldlen, size_t *newlen) 
 	(from php 5.4 string.c)
 */
 static char *php_hex2bin(const unsigned char *old, const size_t oldlen, size_t *newlen) {

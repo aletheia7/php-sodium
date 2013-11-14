@@ -18,7 +18,7 @@ phpize && ./configure && make && sudo make install ; make test
 
 #### Build on Windows
 
-Status: Builds under windoze branch
+Confirmed.
 
 #### Documentation
 

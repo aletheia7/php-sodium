@@ -19,10 +19,6 @@ This file is part of php-sodium.
     along with php-sodium.  If not, see <http://www.gnu.org/licenses/>
 }}} */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "php.h"
 #include "php_sodium.h"
 #include "sodium.h"
@@ -70,7 +66,6 @@ typedef struct _php_sodium_nonce_data {
 
 typedef struct _php_sodium_nonce {
 	zend_object std;
-	unsigned char *last;
 	unsigned char *current;
 	php_sodium_nonce_data *data;
 } php_sodium_nonce;
@@ -211,11 +206,6 @@ static void php_sodium_nonce_free_object_storage(void *object TSRMLS_DC) {
 		return;
 	}
 
-	if (intern->last) {
-
-		efree(intern->last);
-	}
-
 	if (intern->current) {
 
 		efree(intern->current);
@@ -241,7 +231,6 @@ static zend_object_value php_sodium_nonce_ctor(zend_class_entry *class_type TSRM
 	memset(&intern->std, 0, sizeof(zend_object));
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
 	object_properties_init(&intern->std, class_type);
-	intern->last = NULL;
 	intern->current = NULL;
 	intern->data = NULL;
 
@@ -359,12 +348,6 @@ static zend_object_value php_sodium_nonce_clone(zval *object TSRMLS_DC) {
 	zov = php_sodium_nonce_ctor(Z_OBJCE_P(object) TSRMLS_CC);
 	old = (php_sodium_nonce *) zend_object_store_get_object(object TSRMLS_CC);
 	new = (php_sodium_nonce *) zend_object_store_get_object_by_handle(zov.handle TSRMLS_CC); 
-
-	if (old->last) {
-
-		new->last = safe_emalloc(crypto_box_NONCEBYTES, sizeof(unsigned char), 1);
-		memcpy(new->last, old->last, crypto_box_NONCEBYTES);
-	}
 
 	if (old->current) {
 
@@ -870,8 +853,8 @@ PHP_METHOD(nonce, next)
 /* }}} */
 
 /* {{{ proto mixed nonce::set_nonce(string $new_nonce [, bool $affirm_greater = true]) 
-	  $affirm_greater => if current_nonce < new_nonce, set last_nonce, current_nonce and return nonce object, or return false on current_nonce >= new_nonce
-	! $affirm_greater => set last_nonce = current_nonce, current = new_once, return nonce object
+	  $affirm_greater => if current_nonce < new_nonce, set current_nonce = new_nonce and return nonce object, or return false on current_nonce >= new_nonce
+	! $affirm_greater => set current = new_once, return nonce object
 */
 PHP_METHOD(nonce, set_nonce)
 {
@@ -903,30 +886,34 @@ PHP_METHOD(nonce, set_nonce)
 
 	if (affirm_greater) {
 
-		if (nonce->last) {
+		if (nonce->current) {
 
 			/* Compare struct timeval */
-			rc = memcmp(nonce->current, new_nonce, 16);
+			rc = memcmp(new_nonce, nonce->current, 16);
 
 			if (rc == -1) {
 				
-				zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. First 8 bytes of nonce < current: %d", rc);
+				zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. First 16 bytes of nonce < current: %d", rc);
 				return;
 			}
 			else if (rc == 0) {
 				/* Compare counter */
-				rc = memcmp(nonce->current + 16, new_nonce + 16, 8); 
+				rc = memcmp(new_nonce + 16, nonce->current + 16, 8); 
 
 				if (rc < 1) {
 
-					zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. new nonce less than current nonce: %d", rc);
+					zend_throw_exception_ex(php_sodium_crypto_exception_entry, PHP_SODIUM_E_BAD_NONCE TSRMLS_CC, "Bad nonce. new nonce <= current nonce: %d", rc);
 					return;
 				}
 			}
 		}
 	}
 
-	nonce->last = nonce->current;
+	if (nonce->current) {
+
+		efree(nonce->current);
+	}
+
 	nonce->current = estrndup(new_nonce, new_nonce_len);
 	RETURN_ZVAL(getThis(), 1, 0);
 }
@@ -1645,19 +1632,27 @@ static zend_function_entry php_sodium_precomp_key_class_methods[] = {
 };
 /* }}} */
 
+/* {{{ sodium_functions
+*/
+zend_function_entry sodium_functions[] = {
+
+	{NULL, NULL, NULL}
+};
+/* }}} */
+
 /* {{{ sodium_module_entry 
 */
 zend_module_entry sodium_module_entry = {
 
 	STANDARD_MODULE_HEADER,
 	"sodium",
-	NULL,
+	sodium_functions,
 	PHP_MINIT(sodium),
 	PHP_MSHUTDOWN(sodium),
 	NULL,
 	NULL,
 	PHP_MINFO(sodium),
-	PHP_SODIUM_VERSION,
+	VER(PHP_SODIUM_VERSION),
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
@@ -1746,7 +1741,7 @@ PHP_MINFO_FUNCTION(sodium)
 {
 	php_info_print_table_start();
 	php_info_print_table_header(2, "sodium support", "enabled");
-	php_info_print_table_header(2, "sodium extension version", PHP_SODIUM_VERSION);
+	php_info_print_table_header(2, "sodium extension version", VER(PHP_SODIUM_VERSION));
 	php_info_print_table_header(2, "sodium library version", sodium_version_string());
 	php_info_print_table_header(2, "randombytes implementation name", randombytes_implementation_name());
 	php_info_print_table_header(2, "endian", (php_sodium_little_endian == 1 ? "little endian" : "big endian"));

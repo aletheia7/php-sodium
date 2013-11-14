@@ -23,9 +23,12 @@ This file is part of php-sodium.
 #ifndef PHP_SODIUM_H
 #define PHP_SODIUM_H
 
-#define PHP_SODIUM_VERSION "1.0.0"
+#include <config.h>
 #define PHP_SODIUM_EXTNAME "sodium"
 #define PHP_SODIUM_NS "sodium"
+
+#define STRINGIFY(s) #s
+#define VER(s) STRINGIFY(s)
 
 extern zend_module_entry sodium_module_entry;
 

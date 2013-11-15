@@ -39,49 +39,39 @@ See: [php-sodium API](docs/api.md)
 <?php
 /*
  * php-sodium uses namespace sodium.
- * crypto() and nonce() objects contain the methods
- * methods will throw a crypto_exception on errors
+ * crypto() and nonce() objects contain the methods.
+ * Methods will throw a crypto_exception on error.
  */
 try {
     
     $c = new \sodium\crypto();
-    
     // Create a secret key
     $alice_secret = $c->keypair();
-    
     // Create public key to give to Bob
     $alice_public = new \sodium\public_key();
     // Load binary key from alice_secret (pbin)
     // false: expect a binary key; i.e. not a hex key 
     $alice_public->load($alice_secret->pbin, false);
-    
     // Alice's friend Bob 
     $bob_secret = $c->keypair();
-    
     // Create public key from bob_secret (pbin)
     $bob_public = new \sodium\public_key();
     $bob_public->load($bob_secret->pbin, false);
-    
     // Alice's message to Bob
     $message  = "Now Jesus did many other signs in the presence of the disciples,";
     $message .= "which are not written in this book; but these are written so that";
     $message .= "you may believe that Jesus is the Christ, the Son of God, and that";
     $message .= "by believing you may have life in his name. (ESV, John 20:30:31)";
-    
     // Create a nonce
     $nonce = new \sodium\nonce();
-    
     // Every call to $nonce->next() generates a new nonce! Important for crypto_box
     // Use Bob's public key to send to Bob 
     $encrypted_text = $c->box($message, $nonce->next(), $bob_public, $alice_secret);
-    
     // Bob receives Alice's public key, the $encrypted_text, and a 24 byte nonce 
     // string ($nonce->nbin) from Alice 
     $nonce_from_alice = $nonce->nbin;
-    
     // Bob creates a nonce object.
     $bob_nonce = new \sodium\nonce();
-    
     // nonce::set_nonce() will throw a crypto_exception if the new nonce < the last nonce.
     $message_decrypted = $c->box_open(
     

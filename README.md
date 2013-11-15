@@ -34,6 +34,7 @@ See: [php-sodium API](docs/api.md)
 1. Alice sends an encrypted message to Bob. 
 2. Alice and Bob create and exchange public keys.
 3. Bob decrypts Alice's message.
+
 ```php
 <?php
 /*

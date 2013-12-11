@@ -27,7 +27,7 @@ Confirmed.
 
 #### Documentation
 
-See: [php-sodium API](docs/api.md)
+See: [php-sodium API](docs/README.md)
 
 #### Example
 

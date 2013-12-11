@@ -484,13 +484,25 @@ PHP_METHOD(crypto, box)
 	PHP_SODIUM_ERROR_HANDLING_INIT()
 	PHP_SODIUM_ERROR_HANDLING_THROW()
 
-	rc = zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	if (ZEND_NUM_ARGS() == 3) {
 
-	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+		rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_precomp_key_entry);
+
+		if (rc == SUCCESS) {
+
+			php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+			return;
+		}
+	}
+	else {
+
+		rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &plain_text, &plain_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	}
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE();
 
 	if (rc == FAILURE) {
-	
-		php_sodium_crypto_box_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+
 		return;
 	}
 
@@ -622,13 +634,25 @@ PHP_METHOD(crypto, box_open)
 	PHP_SODIUM_ERROR_HANDLING_INIT()
 	PHP_SODIUM_ERROR_HANDLING_THROW()
 
-	rc = zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	if (ZEND_NUM_ARGS() == 3) {
 
-	PHP_SODIUM_ERROR_HANDLING_RESTORE()
+		rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_precomp_key_entry);
+
+		if (rc == SUCCESS) {
+
+			php_sodium_crypto_box_open_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+			return;
+		}
+	}
+	else {
+
+		rc = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sOOO", &encrypted_text, &encrypted_text_len, &zn, php_sodium_nonce_entry, &zpk, php_sodium_public_key_entry, &zsk, php_sodium_secret_key_entry);
+	}
+
+	PHP_SODIUM_ERROR_HANDLING_RESTORE();
 
 	if (rc == FAILURE) {
 
-		php_sodium_crypto_box_open_afternm(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 		return;
 	}
 

@@ -123,11 +123,11 @@ class crypto {
 	* @param string $plain_text text to be encrypted
 	* @param nonce $nonce
 	* @param mixed $receiver { public_key | precomp_key }
-	* @param mixed $sender { secret_key | null }
+	* @param secret_key $sender
 	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY | LOAD_PRECOMPKEY | AFTERNM_BOX_FAILED ]
 	* @return string binary data. Length is 16 bytes longer than $plain_text
 	*/
-	function box($plain_text, nonce $nonce, $receiver, $sender = null);
+	function box($plain_text, nonce $nonce, $receiver, secret_key $sender);
 
 	/**
 	* Decrypts encrypted data using a nonce, a sender's public key, and a receiver's
@@ -139,11 +139,11 @@ class crypto {
 	* @param string $encrypted_text text to be decrypted
 	* @param nonce $nonce
 	* @param mixed $sender { public_key | precomp_key }
-	* @param mixed $receiver { secret_key | null }
+	* @param secret_key $receiver
 	* @throws crypto_exception::code = [ GENERAL | BAD_NONCE | LOAD_PUBLICKEY | LOAD_SECRET_KEY | LOAD_PRECOMPKEY | AFTERNM_BOX_OPEN_FAILED ]
 	* @return string plain text. Length is 16 bytes less than $encrypted_text
 	*/
-	function box_open(string $encrypted_text, nonce $nonce, $sender, $receiver = null);
+	function box_open(string $encrypted_text, nonce $nonce, $sender, secret_key $receiver);
 
 	/**
 	* Generates random bytes

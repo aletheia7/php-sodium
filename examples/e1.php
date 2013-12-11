@@ -53,8 +53,10 @@ try {
 
 catch(\sodium\crypto_exception $e) {
 
-	syslog(LOG_ERR, sprintf("Error: (%s) %s\n%s\n"
+	syslog(LOG_ERR, sprintf("Error: %s:%s : (%s) %s\n%s\n"
 
+		, $e->getFile()
+		, $e->getLine()
 		, $e->getCode()
 		, $e->getMessage()
 		, $e->getTraceAsString()

@@ -14,4 +14,4 @@
 Frank Denis
 
 #### php-sodium
-Erik Haller
+aletheia7
